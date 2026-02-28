@@ -1,0 +1,115 @@
+erDiagram
+
+  City {
+    int id PK
+    string city_name
+    datetime created_at
+  }
+
+  Batch {
+    int id PK
+    string batch_name
+    int year
+    int city_id FK
+    datetime created_at
+  }
+
+  Student {
+    int id PK
+    string name
+    string email
+    string username
+    string password_hash
+    string google_id
+    string enrollment_id
+    int city_id FK
+    int batch_id FK
+    string leetcode_id
+    string gfg_id
+    boolean is_profile_complete
+    datetime created_at
+    datetime updated_at
+  }
+
+  Admin {
+    int id PK
+    string name
+    string email
+    string username
+    string password_hash
+    enum role
+    datetime created_at
+    datetime updated_at
+  }
+
+  Topic {
+    int id PK
+    string topic_name
+    datetime created_at
+  }
+
+  Question {
+    int id PK
+    string question_name
+    string question_link
+    enum platform
+    enum level
+    enum type
+    int topic_id FK
+    datetime created_at
+  }
+
+  Class {
+    int id PK
+    int topic_id FK
+    int batch_id FK
+    string class_number
+    string pdf_url
+    string description
+    int duration_minutes
+    datetime class_date
+    datetime created_at
+  }
+
+  QuestionVisibility {
+    int id PK
+    int class_id FK
+    int question_id FK
+    int batch_id FK
+    datetime assigned_at
+  }
+
+  StudentProgress {
+    int id PK
+    int student_id FK
+    int question_id FK
+    datetime solved_at
+  }
+
+  Bookmark {
+    int id PK
+    int student_id FK
+    int question_id FK
+    datetime created_at
+  }
+
+  %% Relationships
+
+  City ||--o{ Batch : has
+  City ||--o{ Student : has
+
+  Batch ||--o{ Student : contains
+  Batch ||--o{ Class : has
+  Batch ||--o{ QuestionVisibility : controls
+
+  Topic ||--o{ Question : contains
+  Topic ||--o{ Class : used_in
+
+  Class ||--o{ QuestionVisibility : assigns
+
+  Question ||--o{ QuestionVisibility : visible_in
+  Question ||--o{ StudentProgress : solved_by
+  Question ||--o{ Bookmark : bookmarked_by
+
+  Student ||--o{ StudentProgress : solves
+  Student ||--o{ Bookmark : saves

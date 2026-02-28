@@ -1,0 +1,172 @@
+Table cities {
+  id int [pk, increment]
+  city_name varchar(100) [not null, unique]
+  created_at timestamp [default: `now()`]
+}
+
+Table batches {
+  id int [pk, increment]
+  batch_name varchar(50) [not null]
+  year int [not null]
+  city_id int [not null]
+  created_at timestamp [default: `now()`]
+
+  indexes {
+    (city_id, year, batch_name) [unique]
+    (city_id)
+  }
+}
+
+Table students {
+  id int [pk, increment]
+
+  name varchar(100) [not null]
+  email varchar(150) [not null, unique]
+  username varchar(100) [not null, unique]
+  password_hash text
+
+  google_id varchar(100) [unique]
+  enrollment_id varchar(100) [unique]
+
+  city_id int
+  batch_id int
+
+  leetcode_id varchar(100)
+  gfg_id varchar(100)
+
+  is_profile_complete boolean [default: false]
+
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table admins {
+  id int [pk, increment]
+
+  name varchar(100) [not null]
+  email varchar(150) [not null, unique]
+  username varchar(100) [not null, unique]
+  password_hash text [not null]
+
+  role varchar(30) [not null]  // SUPERADMIN, TEACHER, INTERN
+
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table topics {
+  id int [pk, increment]
+  topic_name varchar(150) [not null, unique]
+  created_at timestamp [default: `now()`]
+}
+
+Table questions {
+  id int [pk, increment]
+  question_name varchar(255) [not null]
+  question_link text [not null]
+
+  platform varchar(50) [not null]   // LEETCODE, GFG, OTHER
+  level varchar(20) [not null]      // EASY, MEDIUM, HARD
+  type varchar(50) [not null]       // HOMEWORK, CLASSWORK
+
+  topic_id int [not null]
+  created_at timestamp [default: `now()`]
+
+  indexes {
+    (topic_id)
+    (platform)
+    (level)
+  }
+}
+
+Table classes {
+  id int [pk, increment]
+
+  topic_id int [not null]
+  batch_id int [not null]
+
+  class_number varchar(50)
+  pdf_url text
+  description text
+  duration_minutes int
+  class_date timestamp
+
+  created_at timestamp [default: `now()`]
+
+  indexes {
+    (batch_id)
+    (topic_id)
+  }
+}
+
+Table question_visibility {
+  id int [pk, increment]
+
+  class_id int [not null]
+  question_id int [not null]
+  batch_id int [not null]
+
+  assigned_at timestamp [default: `now()`]
+
+  indexes {
+    (class_id, question_id) [unique]
+    (question_id)
+    (batch_id)
+  }
+}
+
+Table student_progress {
+  id int [pk, increment]
+
+  student_id int [not null]
+  question_id int [not null]
+
+  status varchar(20) [not null]  // SOLVED, ATTEMPTED
+  attempt_count int [default: 1]
+  solved_at timestamp
+
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    (student_id, question_id) [unique]
+    (student_id)
+    (question_id)
+  }
+}
+
+Table bookmarks {
+  id int [pk, increment]
+  student_id int [not null]
+  question_id int [not null]
+
+  created_at timestamp [default: `now()`]
+
+  indexes {
+    (student_id, question_id) [unique]
+  }
+}
+
+//////////////////////////////////////////////////
+// Relationships
+//////////////////////////////////////////////////
+
+Ref: batches.city_id > cities.id
+
+Ref: students.city_id > cities.id
+Ref: students.batch_id > batches.id
+
+Ref: questions.topic_id > topics.id
+
+Ref: classes.topic_id > topics.id
+Ref: classes.batch_id > batches.id
+
+Ref: question_visibility.class_id > classes.id
+Ref: question_visibility.question_id > questions.id
+Ref: question_visibility.batch_id > batches.id
+
+Ref: student_progress.student_id > students.id
+Ref: student_progress.question_id > questions.id
+
+Ref: bookmarks.student_id > students.id
+Ref: bookmarks.question_id > questions.id
