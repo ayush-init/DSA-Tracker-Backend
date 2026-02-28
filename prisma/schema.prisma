@@ -11,66 +11,68 @@ model City {
   id         Int       @id @default(autoincrement())
   city_name  String    @unique @db.VarChar(100)
   created_at DateTime  @default(now())
-  
+  slug       String    @unique @db.VarChar(120)
   batches    Batch[]
   students   Student[]
 }
 
 model Batch {
-  id          Int      @id @default(autoincrement())
-  batch_name  String   @db.VarChar(50)
-  year        Int
-  city_id     Int
-  created_at  DateTime @default(now())
-  
-  city        City     @relation(fields: [city_id], references: [id], onDelete: Cascade)
-  students    Student[]
-  classes     Class[]
+  id         Int      @id @default(autoincrement())
+  batch_name String   @db.VarChar(50)
+  year       Int
+  city_id    Int
+  slug       String   @db.VarChar(80)
+  created_at DateTime @default(now())
+
+  city               City                 @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  students           Student[]
+  classes            Class[]
   questionVisibility QuestionVisibility[]
-  
+
   @@unique([city_id, year, batch_name])
+  @@unique([city_id, slug])
   @@index([city_id])
 }
 
 model Student {
-  id             Int       @id @default(autoincrement())
-  name           String    @db.VarChar(100)
-  email          String    @unique @db.VarChar(150)
-  username       String    @unique @db.VarChar(100)
-  password_hash  String?   @db.Text
-  google_id      String?   @unique @db.VarChar(100)
-  enrollment_id  String?   @unique @db.VarChar(100)
-  
-  city_id        Int?
-  batch_id       Int?
-  
-  leetcode_id    String?   @db.VarChar(100)
-  gfg_id         String?   @db.VarChar(100)
-  
+  id            Int     @id @default(autoincrement())
+  name          String  @db.VarChar(100)
+  email         String  @unique @db.VarChar(150)
+  username      String  @unique @db.VarChar(100)
+  password_hash String? @db.Text
+  google_id     String? @unique @db.VarChar(100)
+  enrollment_id String? @unique @db.VarChar(100)
+
+  city_id  Int?
+  batch_id Int?
+
+  leetcode_id String? @db.VarChar(100)
+  gfg_id      String? @db.VarChar(100)
+
   is_profile_complete Boolean @default(false)
-  
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
-  
-  city           City?     @relation(fields: [city_id], references: [id])
-  batch          Batch?    @relation(fields: [batch_id], references: [id])
-  progress       StudentProgress[]
-  bookmarks      Bookmark[]
-  
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  city      City?             @relation(fields: [city_id], references: [id])
+  batch     Batch?            @relation(fields: [batch_id], references: [id])
+  progress  StudentProgress[]
+  bookmarks Bookmark[]
+
   @@index([city_id])
   @@index([batch_id])
 }
 
 model Admin {
-  id            Int      @id @default(autoincrement())
-  name          String   @db.VarChar(100)
-  email         String   @unique @db.VarChar(150)
-  username      String   @unique @db.VarChar(100)
-  password_hash String   @db.Text
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(100)
+  email         String    @unique @db.VarChar(150)
+  username      String    @unique @db.VarChar(100)
+  password_hash String    @db.Text
   role          AdminRole @default(INTERN)
-  
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 enum AdminRole {
@@ -80,29 +82,31 @@ enum AdminRole {
 }
 
 model Topic {
-  id         Int        @id @default(autoincrement())
-  topic_name String     @unique @db.VarChar(150)
-  created_at DateTime   @default(now())
-  
-  questions  Question[]
-  classes    Class[]
+  id         Int      @id @default(autoincrement())
+  topic_name String   @unique @db.VarChar(150)
+  slug       String   @unique @db.VarChar(170)
+  created_at DateTime @default(now())
+
+  questions Question[]
+  classes   Class[]
 }
 
 model Question {
-  id             Int       @id @default(autoincrement())
-  question_name  String    @db.VarChar(255)
-  question_link  String    @db.Text
-  platform       Platform  @default(LEETCODE)
-  level          Level     @default(MEDIUM)
-  type           QuestionType @default(HOMEWORK)
-  topic_id       Int
-  created_at     DateTime  @default(now())
-  
-  topic          Topic     @relation(fields: [topic_id], references: [id], onDelete: Cascade)
-  visibility     QuestionVisibility[]
-  progress       StudentProgress[]
-  bookmarks      Bookmark[]
-  
+  id            Int          @id @default(autoincrement())
+  question_name String       @db.VarChar(255)
+  question_link String       @db.Text
+  platform      Platform     @default(LEETCODE)
+  level         Level        @default(MEDIUM)
+  type          QuestionType @default(HOMEWORK)
+  topic_id      Int
+  created_at    DateTime     @default(now())
+
+  topic      Topic                @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  visibility QuestionVisibility[]
+  progress   StudentProgress[]
+  bookmarks  Bookmark[]
+
+  @@unique([question_link])
   @@index([topic_id])
   @@index([platform])
   @@index([level])
@@ -126,20 +130,21 @@ enum QuestionType {
 }
 
 model Class {
-  id                Int       @id @default(autoincrement())
-  topic_id          Int
-  batch_id          Int
-  class_number      String?   @db.VarChar(50)
-  pdf_url           String?   @db.Text
-  description       String?   @db.Text
-  duration_minutes  Int?
-  class_date        DateTime?
-  created_at        DateTime  @default(now())
-  
-  topic             Topic     @relation(fields: [topic_id], references: [id], onDelete: Cascade)
-  batch             Batch     @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  id               Int       @id @default(autoincrement())
+  topic_id         Int
+  batch_id         Int
+  class_number     String?   @db.VarChar(50)
+  pdf_url          String?   @db.Text
+  description      String?   @db.Text
+  duration_minutes Int?
+  class_date       DateTime?
+  created_at       DateTime  @default(now())
+
+  topic              Topic                @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  batch              Batch                @relation(fields: [batch_id], references: [id], onDelete: Cascade)
   questionVisibility QuestionVisibility[]
-  
+
+  @@unique([topic_id, batch_id, class_number])
   @@index([batch_id])
   @@index([topic_id])
 }
@@ -148,16 +153,15 @@ model QuestionVisibility {
   id          Int      @id @default(autoincrement())
   class_id    Int
   question_id Int
-  batch_id    Int
   assigned_at DateTime @default(now())
-  
-  class       Class    @relation(fields: [class_id], references: [id], onDelete: Cascade)
-  question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  batch       Batch    @relation(fields: [batch_id], references: [id], onDelete: Cascade)
-  
+
+  class    Class    @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+ 
+
   @@unique([class_id, question_id])
   @@index([question_id])
-  @@index([batch_id])
+ 
 }
 
 model StudentProgress {
@@ -165,10 +169,10 @@ model StudentProgress {
   student_id  Int
   question_id Int
   solved_at   DateTime @default(now())
-  
-  student     Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  
+
+  student  Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
   @@unique([student_id, question_id])
   @@index([student_id])
   @@index([question_id])
@@ -179,10 +183,10 @@ model Bookmark {
   student_id  Int
   question_id Int
   created_at  DateTime @default(now())
-  
-  student     Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  
+
+  student  Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
   @@unique([student_id, question_id])
   @@index([student_id])
 }
