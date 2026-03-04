@@ -69,6 +69,12 @@ export const getAllStudentsService = async (query: any) => {
 
 
 
+
+
+
+
+
+
 export const getStudentReportService = async (username: string) => {
     const student = await prisma.student.findUnique({
         where: { username },

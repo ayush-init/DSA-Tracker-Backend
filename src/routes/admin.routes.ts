@@ -28,6 +28,8 @@ import { bulkUploadQuestions } from "../controllers/admin/questionBulk.controlle
 import { updateStudentDetails, deleteStudentDetails }  from "../controllers/admin/student.controller"
 import { getAllStudentsController, getStudentReportController }  from "../controllers/admin/student.controller"
 import { createStudentController }  from "../controllers/admin/student.controller"
+import { testLeetcode, testGfg } from "../controllers/test.controller";
+import { manualSync } from "../controllers/admin/progress.controller";
 // import {
 //   getStudentsForBatch,
 //   getStudentReport,
@@ -101,6 +103,14 @@ router.delete( "/students/:id",isTeacherOrAbove,isAdmin,deleteStudentDetails);
 router.get("/students", getAllStudentsController);
 router.get("/students/:username", getStudentReportController);
 router.post("/students", isTeacherOrAbove,createStudentController);
+
+
+
+router.get("/test/leetcode/:username", testLeetcode);
+router.get("/test/gfg/:username", testGfg);
+router.post("/students/sync/:id", manualSync);
+
+
 
 // Everything below requires valid batchSlug
 router.use("/:batchSlug", resolveBatch);

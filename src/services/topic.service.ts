@@ -60,7 +60,6 @@ export const getAllTopicsService = async () => {
   return topics;
 };
 
-
 interface GetTopicsForBatchInput {
   batchId: number;
 }
@@ -73,23 +72,41 @@ export const getTopicsForBatchService = async ({
     include: {
       classes: {
         where: {
-          batch_id: batchId,
+          batch_id: batchId
         },
-        select: { id: true },
-      },
-      questions: {
-        select: { id: true },
-      },
+        include: {
+          questionVisibility: {
+            include: {
+              question: {
+                select: {
+                  id: true
+                }
+              }
+            }
+          }
+        }
+      }
     }
   });
 
-  const formatted = topics.map((topic) => ({
-    id: topic.id,
-    topic_name: topic.topic_name,
-    slug: topic.slug,
-    classCount: topic.classes.length,
-    questionCount: topic.questions.length,
-  }));
+  const formatted = topics.map(topic => {
+
+    const uniqueQuestions = new Set<number>();
+
+    topic.classes.forEach(cls => {
+      cls.questionVisibility.forEach(qv => {
+        uniqueQuestions.add(qv.question.id);
+      });
+    });
+
+    return {
+      id: topic.id,
+      topic_name: topic.topic_name,
+      slug: topic.slug,
+      classCount: topic.classes.length,
+      questionCount: uniqueQuestions.size
+    };
+  });
 
   return formatted;
 };
