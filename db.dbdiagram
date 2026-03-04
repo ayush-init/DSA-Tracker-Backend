@@ -3,7 +3,68 @@
   "darkMode": true,
   "gridEnabling": true,
   "detailLevel": "All",
-  "tablePositions": [],
+  "tablePositions": [
+    {
+      "name": "cities",
+      "schemaName": "public",
+      "x": 339.431640625,
+      "y": 12
+    },
+    {
+      "name": "batches",
+      "schemaName": "public",
+      "x": 836.18798828125,
+      "y": 12
+    },
+    {
+      "name": "students",
+      "schemaName": "public",
+      "x": 1417.49072265625,
+      "y": 419
+    },
+    {
+      "name": "admins",
+      "schemaName": "public",
+      "x": 72,
+      "y": -200
+    },
+    {
+      "name": "topics",
+      "schemaName": "public",
+      "x": 339.431640625,
+      "y": 186
+    },
+    {
+      "name": "questions",
+      "schemaName": "public",
+      "x": 836.18798828125,
+      "y": 272
+    },
+    {
+      "name": "classes",
+      "schemaName": "public",
+      "x": 1417.49072265625,
+      "y": 53
+    },
+    {
+      "name": "question_visibility",
+      "schemaName": "public",
+      "x": 1938.126953125,
+      "y": 12
+    },
+    {
+      "name": "student_progress",
+      "schemaName": "public",
+      "x": 1938.126953125,
+      "y": 250
+    },
+    {
+      "name": "bookmarks",
+      "schemaName": "public",
+      "x": 1938.126953125,
+      "y": 584
+    }
+  ],
   "tableGroupCollapseStates": [],
   "stickyNoteLayouts": [],
   "referencePaths": []
