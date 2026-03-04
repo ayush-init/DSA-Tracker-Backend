@@ -26,8 +26,7 @@ import { assignQuestionsToClass, getAssignedQuestionsOfClass, removeQuestionFrom
 import { upload } from "../middlewares/upload.middleware";
 import { bulkUploadQuestions } from "../controllers/admin/questionBulk.controller";
 import { updateStudentDetails, deleteStudentDetails }  from "../controllers/admin/student.controller"
-import { getAllStudentsController, getStudentReportController }  from "../controllers/admin/student.controller"
-import { createStudentController }  from "../controllers/admin/student.controller"
+import { getAllStudentsController, getStudentReportController, addStudentProgressController, createStudentController }  from "../controllers/admin/student.controller"
 // import {
 //   getStudentsForBatch,
 //   getStudentReport,
@@ -96,6 +95,7 @@ router.get("/students", getAllStudentsController);
 router.get("/students/:username", getStudentReportController);
 router.post("/students", isTeacherOrAbove,createStudentController);
 
+router.post( "/students/progress", isTeacherOrAbove, isAdmin, addStudentProgressController);
 // Everything below requires valid batchSlug
 router.use("/:batchSlug", resolveBatch);
 

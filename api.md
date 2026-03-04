@@ -1042,6 +1042,280 @@ DELETE /api/admin/:batchSlug/classes/:classSlug/questions/:questionId
   "message": "Question removed from class successfully"
 }
 ```
+# Student Management API Documentation
+
+## Base URL
+
+http://localhost:5000/api/admin
+
+
+This document describes all **Student Management APIs** including filtering, searching, sorting, ordering, and student statistics.
+
+---
+
+# 1. Get All Students
+
+## Endpoint
+
+GET /students
+
+
+## Description
+Returns the list of all students along with:
+- City
+- Batch
+- Total solved questions
+
+Supports filtering, searching, and sorting.
+
+---
+
+# Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| search | string | Search by name, email, or username |
+| city | string | Filter students by city slug |
+| batchSlug | string | Filter students by batch slug |
+| sortBy | string | Field used for sorting |
+| order | string | Sorting order (`asc` or `desc`) |
+
+---
+
+# Supported Sorting Fields
+
+| Field | Description |
+|------|-------------|
+| created_at | Sort by student creation date |
+| name | Sort by student name |
+| email | Sort by student email |
+| totalSolved | Sort by number of solved questions |
+
+---
+
+# Example API Requests
+
+## Get all students
+
+
+GET /students
+
+
+---
+
+## Search students
+
+
+GET /students?search=ayush
+
+
+Search works on:
+
+- name  
+- email  
+- username  
+
+---
+
+## Filter by city
+
+
+GET /students?city=noida
+
+
+---
+
+## Filter by batch
+
+
+GET /students?batchSlug=sot
+
+
+---
+
+## Sort by creation date
+
+
+GET /students?sortBy=created_at&order=desc
+
+
+---
+
+## Sort by student name
+
+
+GET /students?sortBy=name&order=asc
+
+
+---
+
+## Sort by solved questions (Leaderboard)
+
+
+GET /students?sortBy=totalSolved&order=desc
+
+
+---
+
+## Combined Filters Example
+
+
+GET /students?search=dhruv&city=noida&batchSlug=sot&sortBy=totalSolved&order=desc
+
+
+---
+
+# Example Response
+
+```json
+[
+  {
+    "id": 19,
+    "name": "DHURV NARANG",
+    "email": "dhruv@gmail.com",
+    "username": "dhruv_dev",
+    "city": "Noida",
+    "batch": "SOT",
+    "totalSolved": 3,
+    "created_at": "2026-03-04T18:40:39.409Z"
+  },
+  {
+    "id": 15,
+    "name": "Ayush Chaurasiya",
+    "email": "ayush@gmail.com",
+    "username": "ayush_dev",
+    "city": "Noida",
+    "batch": "SOT",
+    "totalSolved": 0,
+    "created_at": "2026-03-04T18:21:00.653Z"
+  }
+]
+2. Get Student Report
+Endpoint
+GET /students/:username
+Description
+
+Returns detailed information about a specific student including:
+
+Basic student info
+
+Total solved questions
+
+Recent solved questions
+
+Example Request
+GET /students/ayush_dev
+Example Response
+{
+  "student": {
+    "id": 15,
+    "name": "Ayush Chaurasiya",
+    "email": "ayush@gmail.com",
+    "city": "Noida",
+    "batch": "SOT"
+  },
+  "stats": {
+    "totalSolved": 3
+  },
+  "recentActivity": []
+}
+3. Create Student
+Endpoint
+POST /students
+Description
+
+Creates a new student record.
+
+Request Body
+{
+  "name": "Ayush Chaurasiya",
+  "email": "ayush@gmail.com",
+  "username": "ayush_dev",
+  "password": "password123",
+  "enrollment_id": "ENR2026001",
+  "city_id": 2,
+  "batch_id": 3,
+  "leetcode_id": "ayush_lc",
+  "gfg_id": "ayush_gfg"
+}
+Success Response
+{
+  "message": "Student created successfully"
+}
+4. Update Student
+Endpoint
+PATCH /students/:id
+Description
+
+Updates student details such as:
+
+name
+
+email
+
+username
+
+city
+
+batch
+
+coding platform IDs
+
+Example Request
+PATCH /students/15
+Request Body Example
+{
+  "name": "Updated Student Name",
+  "leetcode_id": "new_lc_id"
+}
+5. Delete Student
+Endpoint
+DELETE /students/:id
+Description
+
+Permanently deletes a student from the database.
+
+Related records removed automatically due to cascade rules.
+
+Example Request
+DELETE /students/15
+6. Add Student Progress
+Endpoint
+POST /students/progress
+Description
+
+Manually marks a question as solved for a student.
+
+Request Body
+{
+  "student_id": 19,
+  "question_id": 25
+}
+Success Response
+{
+  "message": "Student progress added successfully"
+}
+Important Notes
+
+totalSolved is calculated using the StudentProgress table.
+
+Each solved question is stored once due to a unique constraint on (student_id, question_id).
+
+Sorting by totalSolved generates leaderboard-style results.
+
+Filtering, searching, and sorting can be combined together.
+
+Leaderboard Example
+GET /students?sortBy=totalSolved&order=desc
+
+This returns students ranked by solved questions.
+
+Example:
+
+Rank 1 → 120 solved
+Rank 2 → 98 solved
+Rank 3 → 85 solved
+
 
 ---
 
