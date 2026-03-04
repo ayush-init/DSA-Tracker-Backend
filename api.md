@@ -1,11 +1,11 @@
-# 🚀 DSA Tracker API Documentation
+# DSA Tracker API Documentation
 
 > **Complete API documentation for frontend developers**  
 > **Version**: 1.0.0 | **Last Updated**: Feb 2025
 
 ---
 
-## 🔐 Authentication Setup
+## Authentication Setup
 
 ### Base URL
 ```
@@ -27,7 +27,7 @@ Content-Type: application/json
 
 ---
 
-## 🚀 AUTHENTICATION ROUTES (`/api/auth`)
+## AUTHENTICATION ROUTES (`/api/auth`)
 
 ### Student Registration
 ```http
@@ -127,9 +127,9 @@ POST /api/auth/admin/login
 
 ---
 
-## 👑 SUPERADMIN ROUTES (`/api/superadmin`)
-**🔒 Access**: SuperAdmin only  
-**🔐 Authentication**: Required
+## SUPERADMIN ROUTES (`/api/superadmin`)
+**Access**: SuperAdmin only  
+**Authentication**: Required
 
 ### Cities Management
 
@@ -384,9 +384,9 @@ GET /api/superadmin/stats
 
 ---
 
-## 🎓 ADMIN ROUTES (`/api/admin`)
-**🔒 Access**: All Admin Roles (SuperAdmin, Teacher, Intern)  
-**🔐 Authentication**: Required
+## ADMIN ROUTES (`/api/admin`)
+**Access**: All Admin Roles (SuperAdmin, Teacher, Intern)  
+**Authentication**: Required
 
 ### Global Routes (No Batch Context)
 
@@ -483,7 +483,7 @@ GET /api/admin/topics
 ```http
 POST /api/admin/topics
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **Request Body:**
 ```json
@@ -512,7 +512,7 @@ POST /api/admin/topics
 ```http
 PATCH /api/admin/topics/:id
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `id` (number) - Topic ID
@@ -544,7 +544,7 @@ PATCH /api/admin/topics/:id
 ```http
 DELETE /api/admin/topics/:id
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `id` (number) - Topic ID
@@ -562,7 +562,7 @@ DELETE /api/admin/topics/:id
 ```http
 POST /api/admin/topics/bulk
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **Request Body:**
 ```json
@@ -633,7 +633,7 @@ GET /api/admin/questions
 ```http
 POST /api/admin/questions
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **Request Body:**
 ```json
@@ -671,7 +671,7 @@ POST /api/admin/questions
 ```http
 PATCH /api/admin/questions/:id
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `id` (number) - Question ID
@@ -712,7 +712,7 @@ PATCH /api/admin/questions/:id
 ```http
 DELETE /api/admin/questions/:id
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `id` (number) - Question ID
@@ -730,7 +730,7 @@ DELETE /api/admin/questions/:id
 ```http
 POST /api/admin/questions/bulk-upload
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **Request Body**: `multipart/form-data`
 - `file` (file) - CSV file with questions data
@@ -757,7 +757,7 @@ Two Sum,https://leetcode.com/problems/two-sum/,LEETCODE,EASY,HOMEWORK,Arrays
 ---
 
 ### Workspace Routes (Batch Context)
-**📝 All routes below require**: `batchSlug` parameter
+**All routes below require**: `batchSlug` parameter
 
 #### Get Topics for Batch
 ```http
@@ -822,7 +822,7 @@ GET /api/admin/:batchSlug/topics/:topicSlug/classes
 ```http
 POST /api/admin/:batchSlug/topics/:topicSlug/classes
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `batchSlug` (string) - Batch slug
@@ -906,7 +906,7 @@ GET /api/admin/:batchSlug/classes/:classSlug
 ```http
 PATCH /api/admin/:batchSlug/classes/:classSlug
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `batchSlug` (string) - Batch slug
@@ -946,7 +946,7 @@ PATCH /api/admin/:batchSlug/classes/:classSlug
 ```http
 DELETE /api/admin/:batchSlug/classes/:classSlug
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `batchSlug` (string) - Batch slug
@@ -967,7 +967,7 @@ DELETE /api/admin/:batchSlug/classes/:classSlug
 ```http
 POST /api/admin/:batchSlug/classes/:classSlug/questions
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `batchSlug` (string) - Batch slug
@@ -1029,7 +1029,7 @@ GET /api/admin/:batchSlug/classes/:classSlug/questions
 ```http
 DELETE /api/admin/:batchSlug/classes/:classSlug/questions/:questionId
 ```
-**🔒 Access**: Teacher or SuperAdmin only
+**Access**: Teacher or SuperAdmin only
 
 **URL Parameters:**
 - `batchSlug` (string) - Batch slug
@@ -1045,9 +1045,9 @@ DELETE /api/admin/:batchSlug/classes/:classSlug/questions/:questionId
 
 ---
 
-## 👨‍🎓 STUDENT ROUTES (`/api/student`)
-**🔒 Access**: Students only  
-**🔐 Authentication**: Required
+## STUDENT ROUTES (`/api/student`)
+**Access**: Students only  
+**Authentication**: Required
 
 ### Analytics
 
@@ -1130,7 +1130,7 @@ GET /api/student/classes/upcoming
 
 ---
 
-## 🎯 Error Responses
+## Error Responses
 
 ### Standard Error Format
 ```json
@@ -1140,13 +1140,13 @@ GET /api/student/classes/upcoming
 ```
 
 ### Common HTTP Status Codes
-- `200` - ✅ Success
-- `201` - ✅ Created successfully  
-- `400` - ❌ Bad request (missing/invalid data)
-- `401` - ❌ Unauthorized (invalid/missing token)
-- `403` - ❌ Forbidden (insufficient permissions)
-- `404` - ❌ Not found
-- `500` - ❌ Internal server error
+- `200` - Success
+- `201` - Created successfully  
+- `400` - Bad request (missing/invalid data)
+- `401` - Unauthorized (invalid/missing token)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not found
+- `500` - Internal server error
 
 ### Error Examples
 
@@ -1173,7 +1173,7 @@ GET /api/student/classes/upcoming
 
 ---
 
-## 🔑 Role Hierarchy & Permissions
+## Role Hierarchy & Permissions
 
 ### Role Access Levels
 
@@ -1185,13 +1185,13 @@ GET /api/student/classes/upcoming
 | **STUDENT** | ❌ | ❌ | ❌ | ❌ | ❌ View | ❌ |
 
 **Legend:**
-- ✅ CRUD = Create, Read, Update, Delete
-- ✅ View = Read-only access
-- ❌ = No access
+- CRUD = Create, Read, Update, Delete
+- View = Read-only access
+- = No access
 
 ---
 
-## 📱 Frontend Implementation Guide
+## Frontend Implementation Guide
 
 ### Quick Start Steps
 
@@ -1287,7 +1287,7 @@ GET /api/student/classes/upcoming
 
 ---
 
-## 🚀 Usage Examples
+## Usage Examples
 
 ### SuperAdmin Creates City
 ```bash
@@ -1336,9 +1336,9 @@ curl -X POST http://localhost:5000/api/admin/batch-a/classes/class-1/questions \
 
 ---
 
-## 📋 Implementation Checklist
+## Implementation Checklist
 
-### ✅ Completed Features
+### Completed Features
 - [x] Authentication (Login/Registration)
 - [x] SuperAdmin: Cities CRUD
 - [x] SuperAdmin: Batches CRUD  
@@ -1350,7 +1350,7 @@ curl -X POST http://localhost:5000/api/admin/batch-a/classes/class-1/questions \
 - [x] Student: Basic analytics (weekly/monthly)
 - [x] Student: Upcoming classes
 
-### 🚧 Coming Soon (Not Implemented)
+### Coming Soon (Not Implemented)
 - [ ] Student profile management
 - [ ] Student question solving
 - [ ] Student progress tracking
@@ -1361,7 +1361,7 @@ curl -X POST http://localhost:5000/api/admin/batch-a/classes/class-1/questions \
 
 ---
 
-## 📄 Data Models Reference
+## Data Models Reference
 
 ### Question Model
 ```json
@@ -1412,7 +1412,7 @@ curl -X POST http://localhost:5000/api/admin/batch-a/classes/class-1/questions \
 
 ---
 
-*📖 This documentation covers all currently implemented API endpoints. For any questions or issues, contact the backend team.*
+*This documentation covers all currently implemented API endpoints. For any questions or issues, contact the backend team.*
 
 **Last Updated**: February 2025  
 **API Version**: 1.0.0
