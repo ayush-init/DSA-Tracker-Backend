@@ -12,7 +12,7 @@ export const createBatch = async (req: Request, res: Response) => {
       year: Number(year),
       city_id: Number(city_id),
     });
-
+ 
     return res.status(201).json({
       message: "Batch created successfully",
       batch,

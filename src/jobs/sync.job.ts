@@ -3,7 +3,7 @@ import { runStudentSyncWorker } from "../workers/sync.worker";
 
 export function startSyncJob() {
 
-  console.log("⏰ Sync cron job started");
+  console.log("Sync cron job started");
   // */1 * * * *
   cron.schedule("0 */4 * * *", async () => {
   // cron.schedule("*/1 * * * *", async () => {
@@ -17,5 +17,4 @@ export function startSyncJob() {
     }
 
   });
-
 }
