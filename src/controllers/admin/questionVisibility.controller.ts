@@ -8,7 +8,14 @@ export const assignQuestionsToClass = async (
 ) => {
   try {
     const batch = (req as any).batch;
+    const topicSlugParam = req.params.topicSlug;
     const classSlug = req.params.classSlug;
+
+    if (typeof topicSlugParam !== "string") {
+      return res.status(400).json({
+        error: "Invalid topic slug",
+      });
+    }
 
     if (typeof classSlug !== "string") {
       return res.status(400).json({
@@ -19,6 +26,7 @@ export const assignQuestionsToClass = async (
 
     const result = await assignQuestionsToClassService({
       batchId: batch.id,
+      topicSlug: topicSlugParam,
       classSlug,
       questionIds: question_ids,
     });
@@ -41,7 +49,14 @@ export const getAssignedQuestionsOfClass = async (
 ) => {
   try {
     const batch = (req as any).batch;
+    const topicSlugParam = req.params.topicSlug;
     const classSlug = req.params.classSlug;
+
+    if (typeof topicSlugParam !== "string") {
+      return res.status(400).json({
+        error: "Invalid topic slug",
+      });
+    }
 
     if (typeof classSlug !== "string") {
       return res.status(400).json({
@@ -49,12 +64,16 @@ export const getAssignedQuestionsOfClass = async (
       });
     }
 
-    const questions = await getAssignedQuestionsOfClassService({
+    const assigned = await getAssignedQuestionsOfClassService({
       batchId: batch.id,
+      topicSlug: topicSlugParam,
       classSlug,
     });
 
-    return res.json(questions);
+    return res.json({
+      message: "Assigned questions retrieved successfully",
+      data: assigned,
+    });
 
   } catch (error: any) {
     return res.status(400).json({
@@ -70,23 +89,45 @@ export const removeQuestionFromClass = async (
 ) => {
   try {
     const batch = (req as any).batch;
+    const topicSlugParam = req.params.topicSlug;
     const classSlug = req.params.classSlug;
+    const questionIdParam = req.params.questionId;
+    
+    if (typeof questionIdParam !== "string") {
+      return res.status(400).json({
+        error: "Invalid question ID",
+      });
+    }
+    
+    const questionId = parseInt(questionIdParam);
+
+    if (typeof topicSlugParam !== "string") {
+      return res.status(400).json({
+        error: "Invalid topic slug",
+      });
+    }
 
     if (typeof classSlug !== "string") {
       return res.status(400).json({
         error: "Invalid class slug",
       });
     }
-    const { questionId } = req.params;
+
+    if (isNaN(questionId)) {
+      return res.status(400).json({
+        error: "Invalid question ID",
+      });
+    }
 
     await removeQuestionFromClassService({
       batchId: batch.id,
+      topicSlug: topicSlugParam,
       classSlug,
-      questionId: Number(questionId),
+      questionId,
     });
 
     return res.json({
-      message: "Question removed from class successfully",
+      message: "Question removed successfully",
     });
 
   } catch (error: any) {

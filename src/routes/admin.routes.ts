@@ -136,50 +136,47 @@ router.post(
   isTeacherOrAbove,
   createClassInTopic
 );
-// Get single class (independent of topic in URL)
+
+// Get single class (topic context required)
 router.get(
-  "/:batchSlug/classes/:classSlug",
+  "/:batchSlug/topics/:topicSlug/classes/:classSlug",
   getClassDetails
 );
 
 router.patch(
-  "/:batchSlug/classes/:classSlug",
+  "/:batchSlug/topics/:topicSlug/classes/:classSlug",
   isTeacherOrAbove,
   updateClass
 );
 
 router.delete(
-  "/:batchSlug/classes/:classSlug",
+  "/:batchSlug/topics/:topicSlug/classes/:classSlug",
   isTeacherOrAbove,
   deleteClass
 );
 
-
-// batch wise class wise question assign
-
+// Question assignment routes (topic context required)
 router.post(
-  "/:batchSlug/classes/:classSlug/questions",
+  "/:batchSlug/topics/:topicSlug/classes/:classSlug/questions",
   isTeacherOrAbove,
   assignQuestionsToClass
 );
 
 router.get(
-  "/:batchSlug/classes/:classSlug/questions",
+  "/:batchSlug/topics/:topicSlug/classes/:classSlug/questions",
   getAssignedQuestionsOfClass
 );
 
 router.delete(
-  "/:batchSlug/classes/:classSlug/questions/:questionId",
+  "/:batchSlug/topics/:topicSlug/classes/:classSlug/questions/:questionId",
   isTeacherOrAbove,
   removeQuestionFromClass
 );
 
-
 // admin student detail // student delete // update 
 
-/* ---------- Students ---------- */
+/* ---------- Analytics ---------- */
     //student?batch-slug//
-
 
 // /* ---------- Analytics ---------- */
 

@@ -129,7 +129,9 @@ export const createClassInTopicService = async ({
   while (
     await prisma.class.findFirst({
       where: {
-        slug: finalSlug,       // ✅ Global slug uniqueness
+        topic_id: topic.id,    // ✅ Same topic
+        batch_id: batchId,     // ✅ Same batch  
+        slug: finalSlug,       // ✅ Same slug
       },
     })
   ) {
@@ -172,11 +174,13 @@ export const createClassInTopicService = async ({
 
 interface GetClassDetailsInput {
   batchId: number;
+  topicSlug: string;
   classSlug: string;
 }
 
 export const getClassDetailsService = async ({
   batchId,
+  topicSlug,
   classSlug,
 }: GetClassDetailsInput) => {
 
@@ -184,10 +188,24 @@ export const getClassDetailsService = async ({
     throw new Error("Invalid class slug");
   }
 
+  if (!topicSlug) {
+    throw new Error("Invalid topic slug");
+  }
+
+  // Find topic first
+  const topic = await prisma.topic.findUnique({
+    where: { slug: topicSlug },
+  });
+
+  if (!topic) {
+    throw new Error("Topic not found");
+  }
+
   const cls = await prisma.class.findFirst({
     where: {
       slug: classSlug,
       batch_id: batchId,
+      topic_id: topic.id,  // Add topic validation
     },
     include: {
       topic: {
@@ -197,27 +215,19 @@ export const getClassDetailsService = async ({
           slug: true,
         },
       },
-      questionVisibility: {
-        include: {
-          question: {
-            select: {
-              id: true,
-              question_name: true,
-              level: true,
-              platform: true,
-              type: true,
-            },
-          },
+      _count: {
+        select: {
+          questionVisibility: true,
         },
       },
     },
   });
 
   if (!cls) {
-    throw new Error("Class not found in this batch");
+    throw new Error("Class not found in this topic and batch");
   }
 
-  const formatted = {
+  return {
     id: cls.id,
     class_name: cls.class_name,
     slug: cls.slug,
@@ -225,17 +235,15 @@ export const getClassDetailsService = async ({
     pdf_url: cls.pdf_url,
     duration_minutes: cls.duration_minutes,
     class_date: cls.class_date,
-    created_at: cls.created_at,
+    questionCount: cls._count.questionVisibility,
     topic: cls.topic,
-    questions: cls.questionVisibility.map((qv) => qv.question),
-    questionCount: cls.questionVisibility.length,
+    created_at: cls.created_at,
   };
-
-  return formatted;
 };
 
 interface UpdateClassInput {
   batchId: number;
+  topicSlug: string;
   classSlug: string;
   class_name?: string;
   description?: string;
@@ -246,6 +254,7 @@ interface UpdateClassInput {
 
 export const updateClassService = async ({
   batchId,
+  topicSlug,
   classSlug,
   class_name,
   description,
@@ -258,15 +267,29 @@ export const updateClassService = async ({
     throw new Error("Invalid class slug");
   }
 
+  if (!topicSlug) {
+    throw new Error("Invalid topic slug");
+  }
+
+  // Find topic first
+  const topic = await prisma.topic.findUnique({
+    where: { slug: topicSlug },
+  });
+
+  if (!topic) {
+    throw new Error("Topic not found");
+  }
+
   const existingClass = await prisma.class.findFirst({
     where: {
       slug: classSlug,
       batch_id: batchId,
+      topic_id: topic.id,
     },
   });
 
   if (!existingClass) {
-    throw new Error("Class not found in this batch");
+    throw new Error("Class not found in this topic and batch");
   }
 
   const finalClassName = class_name ?? existingClass.class_name;
@@ -331,23 +354,39 @@ export const updateClassService = async ({
 
 interface DeleteClassInput {
   batchId: number;
+  topicSlug: string;
   classSlug: string;
 }
 
 export const deleteClassService = async ({
   batchId,
+  topicSlug,
   classSlug,
 }: DeleteClassInput) => {
+
+  if (!topicSlug) {
+    throw new Error("Invalid topic slug");
+  }
+
+  // Find topic first
+  const topic = await prisma.topic.findUnique({
+    where: { slug: topicSlug },
+  });
+
+  if (!topic) {
+    throw new Error("Topic not found");
+  }
 
   const existingClass = await prisma.class.findFirst({
     where: {
       slug: classSlug,
       batch_id: batchId,
+      topic_id: topic.id,
     },
   });
 
   if (!existingClass) {
-    throw new Error("Class not found in this batch");
+    throw new Error("Class not found in this topic and batch");
   }
 
   const questionCount = await prisma.questionVisibility.count({

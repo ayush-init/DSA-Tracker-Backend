@@ -80,9 +80,16 @@ export const getClassDetails = async (
   req: Request,
   res: Response
 ) => {
- try {
+  try {
     const batch = (req as any).batch;
+    const topicSlugParam = req.params.topicSlug;
     const classSlugParam = req.params.classSlug;
+
+    if (typeof topicSlugParam !== "string") {
+      return res.status(400).json({
+        error: "Invalid topic slug",
+      });
+    }
 
     if (typeof classSlugParam !== "string") {
       return res.status(400).json({
@@ -90,12 +97,13 @@ export const getClassDetails = async (
       });
     }
 
-    const result = await getClassDetailsService({
+    const classDetails = await getClassDetailsService({
       batchId: batch.id,
+      topicSlug: topicSlugParam,
       classSlug: classSlugParam,
     });
 
-    return res.json(result);
+    return res.json(classDetails);
 
   } catch (error: any) {
     return res.status(400).json({
@@ -110,7 +118,14 @@ export const updateClass = async (
 ) => {
   try {
     const batch = (req as any).batch;
+    const topicSlugParam = req.params.topicSlug;
     const classSlug = req.params.classSlug;
+
+    if (typeof topicSlugParam !== "string") {
+      return res.status(400).json({
+        error: "Invalid topic slug",
+      });
+    }
 
     if (typeof classSlug !== "string") {
       return res.status(400).json({
@@ -120,6 +135,7 @@ export const updateClass = async (
 
     const updated = await updateClassService({
       batchId: batch.id,
+      topicSlug: topicSlugParam,
       classSlug,
       ...req.body,
     });
@@ -142,7 +158,14 @@ export const deleteClass = async (
 ) => {
   try {
     const batch = (req as any).batch;
+    const topicSlugParam = req.params.topicSlug;
     const classSlug = req.params.classSlug;
+
+    if (typeof topicSlugParam !== "string") {
+      return res.status(400).json({
+        error: "Invalid topic slug",
+      });
+    }
 
     if (typeof classSlug !== "string") {
       return res.status(400).json({
@@ -152,6 +175,7 @@ export const deleteClass = async (
 
     await deleteClassService({
       batchId: batch.id,
+      topicSlug: topicSlugParam,
       classSlug,
     });
 

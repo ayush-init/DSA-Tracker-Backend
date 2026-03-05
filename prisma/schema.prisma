@@ -119,7 +119,7 @@ model Class {
   batch              Batch                @relation(fields: [batch_id], references: [id], onDelete: Cascade)
   questionVisibility QuestionVisibility[]
 
-  @@unique([slug])
+  @@unique([topic_id, batch_id, slug])
   @@unique([topic_id, batch_id, class_name])
   @@index([batch_id])
   @@index([topic_id])
