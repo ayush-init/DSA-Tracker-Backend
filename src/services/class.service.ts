@@ -81,6 +81,8 @@ export const createClassInTopicService = async ({
   class_date,
 }: CreateClassInput) => {
 
+  console.log("Creating class with:", { batchId, topicSlug, class_name, class_date });
+
   if (!topicSlug) {
     throw new Error("Invalid topic slug");
   }
@@ -94,8 +96,10 @@ export const createClassInTopicService = async ({
     where: { slug: topicSlug },
   });
 
+  console.log("Found topic:", topic);
+
   if (!topic) {
-    throw new Error("Topic not found");
+    throw new Error(`Topic not found with slug: ${topicSlug}`);
   }
 
   // 2️⃣ Check duplicate inside same topic + batch (unique across both)
@@ -125,9 +129,7 @@ export const createClassInTopicService = async ({
   while (
     await prisma.class.findFirst({
       where: {
-        topic_id: topic.id,    // ✅ Same topic
-        batch_id: batchId,     // ✅ Same batch  
-        slug: finalSlug,        // ✅ Same slug
+        slug: finalSlug,       // ✅ Global slug uniqueness
       },
     })
   ) {
@@ -135,6 +137,22 @@ export const createClassInTopicService = async ({
   }
 
   // 4️⃣ Create class
+  let processedDate = null;
+  if (class_date) {
+    try {
+      processedDate = new Date(class_date);
+      
+      // Validate date
+      if (isNaN(processedDate.getTime())) {
+        throw new Error("Invalid date format");
+      }
+      
+      console.log("Processed date:", processedDate);
+    } catch (error) {
+      throw new Error("Invalid date format. Use valid date string");
+    }
+  }
+
   const newClass = await prisma.class.create({
     data: {
       class_name,
@@ -142,7 +160,7 @@ export const createClassInTopicService = async ({
       description,
       pdf_url,
       duration_minutes,
-      class_date: class_date ? new Date(class_date) : null,
+      class_date: processedDate,
       topic_id: topic.id,
       batch_id: batchId,
     },
