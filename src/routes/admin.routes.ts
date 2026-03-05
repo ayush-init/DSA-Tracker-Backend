@@ -29,6 +29,8 @@ import { updateStudentDetails, deleteStudentDetails }  from "../controllers/admi
 import { getAllStudentsController, getStudentReportController, addStudentProgressController, createStudentController }  from "../controllers/admin/student.controller"
 import { testLeetcode, testGfg } from "../controllers/test.controller";
 import { manualSync } from "../controllers/admin/progress.controller";
+import { getDashboardController } from "../controllers/admin/dashboard.controller";
+import { getAssignedQuestionsController } from "../controllers/admin/question.controller";
 // import {
 //   getStudentsForBatch,
 //   getStudentReport,
@@ -86,13 +88,17 @@ router.post(
 /* ---------- Students ---------- */
 
 // router.get("/students", getStudentsForBatch);
-// + count of solved + streak + + all filters city wise + batch wise 
+// + count of solved + streak + + all filters city wise + batch wise
 // router.get("students/:username", getStudentReport);
-// total solved  + hard + easy + medium + + topic wise how much + 
+// total solved  + hard + easy + medium + + topic wise how much +
 
 
 // Student CRUD
 // Update
+
+router.get("/dashboard", getDashboardController);
+
+router.get("/questions", getAssignedQuestionsController);
 
 router.patch(  "/students/:id",isTeacherOrAbove,isAdmin,updateStudentDetails);
 

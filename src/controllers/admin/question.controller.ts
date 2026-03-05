@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../../config/prisma";
 import { createQuestionService, deleteQuestionService, getAllQuestionsService, updateQuestionService } from "../../services/question.service";
 
+import { getAssignedQuestionsService } from "../../services/question.service";
 
 
 
@@ -103,5 +104,32 @@ export const deleteQuestion = async (
     return res.status(400).json({
       error: error.message,
     });
+  }
+};
+
+
+
+
+
+export const getAssignedQuestionsController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+
+    const data = await getAssignedQuestionsService(req.query);
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+
+  } catch (error: any) {
+
+    return res.status(400).json({
+      success: false,
+      error: error.message || "Failed to fetch questions"
+    });
+
   }
 };

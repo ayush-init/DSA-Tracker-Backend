@@ -289,3 +289,149 @@ export const deleteQuestionService = async ({
   return true;
 };
 
+
+export const getAssignedQuestionsService = async (query: any) => {
+
+  try {
+
+    const { city, batch, year } = query;
+
+    const batchFilter: any = {};
+
+    // -----------------------------
+    // CITY FILTER
+    // -----------------------------
+    if (city) {
+
+      const cityExists = await prisma.city.findUnique({
+        where: { slug: city }
+      });
+
+      if (!cityExists) {
+        throw new Error("Invalid city");
+      }
+
+      batchFilter.city = {
+        slug: city
+      };
+    }
+
+    // -----------------------------
+    // BATCH FILTER
+    // -----------------------------
+    if (batch) {
+
+      const batchExists = await prisma.batch.findUnique({
+        where: { slug: batch }
+      });
+
+      if (!batchExists) {
+        throw new Error("Invalid batch");
+      }
+
+      batchFilter.slug = batch;
+    }
+
+    // -----------------------------
+    // YEAR FILTER
+    // -----------------------------
+    if (year) {
+
+      const parsedYear = Number(year);
+
+      if (isNaN(parsedYear)) {
+        throw new Error("Year must be a number");
+      }
+
+      batchFilter.year = parsedYear;
+    }
+
+    // -----------------------------
+    // FETCH BATCHES
+    // -----------------------------
+
+    const batches = await prisma.batch.findMany({
+      where: batchFilter,
+      select: { id: true }
+    });
+
+    if (batch && batches.length === 0) {
+      throw new Error("Batch not found");
+    }
+
+    const batchIds = batches.map(b => b.id);
+
+    // -----------------------------
+    // FETCH ASSIGNED QUESTIONS
+    // -----------------------------
+
+    const questions = await prisma.question.findMany({
+      where: {
+        visibility: {
+          some: {
+            class: {
+              batch_id: {
+                in: batchIds.length ? batchIds : undefined
+              }
+            }
+          }
+        }
+      },
+      select: {
+        id: true,
+        question_name: true,
+        platform: true,
+        level: true,
+        type: true,
+        topic: {
+          select: {
+            topic_name: true
+          }
+        }
+      }
+    });
+
+    // -----------------------------
+    // ANALYTICS
+    // -----------------------------
+
+    const platformStats = { leetcode: 0, gfg: 0 };
+
+    const difficultyStats = { easy: 0, medium: 0, hard: 0 };
+
+    const typeStats = { homework: 0, classwork: 0 };
+
+    questions.forEach(q => {
+
+      if (q.platform === "LEETCODE") platformStats.leetcode++;
+      if (q.platform === "GFG") platformStats.gfg++;
+
+      if (q.level === "EASY") difficultyStats.easy++;
+      if (q.level === "MEDIUM") difficultyStats.medium++;
+      if (q.level === "HARD") difficultyStats.hard++;
+
+      if (q.type === "HOMEWORK") typeStats.homework++;
+      if (q.type === "CLASSWORK") typeStats.classwork++;
+
+    });
+
+    return {
+
+      totalQuestions: questions.length,
+
+      analytics: {
+        platforms: platformStats,
+        difficulty: difficultyStats,
+        type: typeStats
+      },
+
+      questions
+
+    };
+
+  } catch (error) {
+
+    throw new Error("Failed to fetch assigned questions");
+
+  }
+};

@@ -178,8 +178,22 @@ export const getStudentReportService = async (username: string) => {
         let totalSolved = solvedQuestions.length;
 
         const platformStats = {
-            leetcode: 0,
-            gfg: 0
+            leetcode: {
+                total: 0,
+                easy: 0,
+                medium: 0,
+                hard: 0,
+                homework: 0,
+                classwork: 0
+            },
+            gfg: {
+                total: 0,
+                easy: 0,
+                medium: 0,
+                hard: 0,
+                homework: 0,
+                classwork: 0
+            }
         };
 
         const difficultyStats = {
@@ -201,9 +215,22 @@ export const getStudentReportService = async (username: string) => {
 
             const q = s.question;
 
-            if (q.platform === "LEETCODE") platformStats.leetcode++;
-            if (q.platform === "GFG") platformStats.gfg++;
+            const platform = q.platform === "LEETCODE" ? "leetcode" :
+                q.platform === "GFG" ? "gfg" : null;
 
+            if (platform) {
+
+                platformStats[platform].total++;
+
+                if (q.level === "EASY") platformStats[platform].easy++;
+                if (q.level === "MEDIUM") platformStats[platform].medium++;
+                if (q.level === "HARD") platformStats[platform].hard++;
+
+                if (q.type === "HOMEWORK") platformStats[platform].homework++;
+                if (q.type === "CLASSWORK") platformStats[platform].classwork++;
+            }
+
+            // existing global stats
             if (q.level === "EASY") difficultyStats.easy++;
             if (q.level === "MEDIUM") difficultyStats.medium++;
             if (q.level === "HARD") difficultyStats.hard++;
@@ -378,11 +405,23 @@ export const createStudentService = async (data: any) => {
             username,
             password,
             enrollment_id,
-            city_id,
             batch_id,
             leetcode_id,
             gfg_id
         } = data;
+
+        // batch exist check karo
+        const batch = await prisma.batch.findUnique({
+            where: { id: batch_id },
+            select: {
+                id: true,
+                city_id: true
+            }
+        });
+
+        if (!batch) {
+            throw new Error("Batch not found");
+        }
 
         let password_hash = null;
 
@@ -397,8 +436,8 @@ export const createStudentService = async (data: any) => {
                 username,
                 password_hash,
                 enrollment_id,
-                city_id,
                 batch_id,
+                city_id: batch.city_id, // city automatically batch se
                 leetcode_id,
                 gfg_id
             }
@@ -430,7 +469,7 @@ export const createStudentService = async (data: any) => {
             }
 
             if (error.code === "P2003") {
-                throw new Error("Invalid city or batch reference");
+                throw new Error("Invalid batch reference");
             }
         }
 
