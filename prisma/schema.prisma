@@ -58,6 +58,7 @@ model Student {
   batch               Batch?            @relation(fields: [batch_id], references: [id])
   city                City?             @relation(fields: [city_id], references: [id])
   progress            StudentProgress[]
+  leaderboards        Leaderboard[]
 
   @@index([city_id])
   @@index([batch_id])
@@ -163,6 +164,24 @@ model Bookmark {
 
   @@unique([student_id, question_id])
   @@index([student_id])
+}
+
+model Leaderboard {
+  id Int @id @default(autoincrement())
+
+  student_id Int @unique
+
+  hard_count   Int @default(0)
+  medium_count Int @default(0)
+  easy_count   Int @default(0)
+
+  score Int @default(0)
+
+  max_streak Int @default(0)
+
+  updated_at DateTime @updatedAt
+
+  student Student @relation(fields: [student_id], references: [id])
 }
 
 enum Platform {
