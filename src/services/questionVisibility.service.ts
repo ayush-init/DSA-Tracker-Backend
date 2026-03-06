@@ -186,7 +186,13 @@ export const getAllQuestionsWithFiltersService = async ({
     include: {
       question: {
         include: {
-          topic: true
+          topic: {
+            select: {
+              id: true,
+              topic_name: true,
+              slug: true
+            }
+          }
         }
       }
     }
@@ -209,7 +215,7 @@ export const getAllQuestionsWithFiltersService = async ({
     },
     select: {
       question_id: true,
-      solved_at: true
+      sync_at: true
     }
   });
 
@@ -221,8 +227,8 @@ export const getAllQuestionsWithFiltersService = async ({
   let questions = Array.from(uniqueQuestions.values()).map((question: any) => ({
     ...question,
     isSolved: solvedQuestionIds.has(question.id),
-    solvedAt: solvedQuestionIds.has(question.id) 
-      ? studentProgress.find(p => p.question_id === question.id)?.solved_at
+    syncAt: solvedQuestionIds.has(question.id) 
+      ? studentProgress.find(p => p.question_id === question.id)?.sync_at
       : null
   }));
 
@@ -266,7 +272,10 @@ export const getAllQuestionsWithFiltersService = async ({
   const paginatedQuestions = questions.slice(startIndex, endIndex);
 
   // Get filter options for frontend
-  const topics = [...new Set(Array.from(uniqueQuestions.values()).map((q: any) => q.topic))];
+  const uniqueTopics = Array.from(uniqueQuestions.values()).map((q: any) => q.topic);
+  const topics = uniqueTopics.filter((topic, index, self) => 
+    self.findIndex(t => t.id === topic.id) === index
+  );
   const levels = ['EASY', 'MEDIUM', 'HARD'];
   const platforms = ['LEETCODE', 'CODEFORCES', 'GEEKSFORGEEKS'];
   const types = ['HOMEWORK', 'CLASSWORK', 'CONTEST'];

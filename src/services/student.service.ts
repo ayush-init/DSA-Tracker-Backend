@@ -119,7 +119,7 @@ export const getStudentReportService = async (username: string) => {
                             }
                         }
                     },
-                    orderBy: { solved_at: "desc" },
+                    orderBy: { sync_at: "desc" },
                     take: 5
                 }
             }

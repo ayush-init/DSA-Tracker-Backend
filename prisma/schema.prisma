@@ -150,7 +150,7 @@ model StudentProgress {
   id          Int      @id @default(autoincrement())
   student_id  Int
   question_id Int
-  solved_at   DateTime @default(now())
+  sync_at     DateTime @default(now())
   question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
   student     Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
 

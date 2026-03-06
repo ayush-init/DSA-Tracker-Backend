@@ -470,7 +470,7 @@ export const getClassDetailsWithFullQuestionsService = async ({
     },
     select: {
       question_id: true,
-      solved_at: true
+      sync_at: true
     }
   });
 
@@ -484,15 +484,15 @@ export const getClassDetailsWithFullQuestionsService = async ({
     const question = qv.question;
     return {
       id: question.id,
-      question_name: question.question_name,
-      question_link: question.question_link,
+      questionName: question.question_name,
+      questionLink: question.question_link,
       platform: question.platform,
       level: question.level,
       type: question.type,
       topic: question.topic,
       isSolved: solvedQuestionIds.has(question.id),
-      solvedAt: solvedQuestionIds.has(question.id) 
-        ? studentProgress.find(p => p.question_id === question.id)?.solved_at
+      syncAt: solvedQuestionIds.has(question.id) 
+        ? studentProgress.find(p => p.question_id === question.id)?.sync_at
         : null
     };
   });

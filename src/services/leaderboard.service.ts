@@ -9,11 +9,11 @@ export const getLeaderboardService = async (query: any) => {
         let timeFilter = "";
 
         if (type === "weekly") {
-            timeFilter = `AND sp.solved_at >= date_trunc('week', now())`;
+            timeFilter = `AND sp.sync_at >= date_trunc('week', now())`;
         }
 
         if (type === "monthly") {
-            timeFilter = `AND sp.solved_at >= date_trunc('month', now())`;
+            timeFilter = `AND sp.sync_at >= date_trunc('month', now())`;
         }
 
         let cityFilter = "";
@@ -262,7 +262,7 @@ export const recalculateLeaderboardService = async () => {
                 }
             },
             orderBy: {
-                solved_at: "asc"
+                sync_at: "asc"
             }
         });
 
@@ -290,7 +290,7 @@ export const recalculateLeaderboardService = async () => {
         const uniqueDates = new Set<string>();
 
         solved.forEach((s) => {
-            const date = s.solved_at.toISOString().split("T")[0];
+            const date = s.sync_at.toISOString().split("T")[0];
             uniqueDates.add(date);
         });
 
