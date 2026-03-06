@@ -1,7 +1,159 @@
 # DSA Tracker API Documentation
 
 > **Complete API documentation for frontend developers**  
-> **Version**: 1.0.0 | **Last Updated**: Feb 2025
+> **Version**: 1.0.0 | **Last Updated**: March 2025
+
+---
+
+## � Authentication & Token Structure
+
+### **Student Login Response**
+```http
+POST /api/auth/login/student
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Login successful",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 123,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "username": "johndoe",
+    "city": {
+      "id": 1,
+      "city_name": "Bangalore",
+      "slug": "bangalore"
+    },
+    "batch": {
+      "id": 1,
+      "batch_name": "SOT 2025",
+      "slug": "batch-sot-2025"
+    },
+    "is_profile_complete": true,
+    "leetcode_id": "johnleetcode",
+    "gfg_id": "johngfg",
+    "defaultCityId": 1,
+    "defaultCityName": "Bangalore",
+    "defaultBatchId": 1,
+    "defaultBatchName": "SOT 2025",
+    "defaultBatchSlug": "batch-sot-2025"
+  }
+}
+```
+
+### **Admin Login Response**
+```http
+POST /api/auth/login/admin
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Login successful",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 456,
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "username": "admin",
+    "role": "TEACHER"
+  }
+}
+```
+
+### **JWT Token Payloads**
+
+#### **Student Token**
+```json
+{
+  "id": 123,
+  "email": "student@example.com",
+  "role": "STUDENT",
+  "userType": "student",
+  "batchId": 1,
+  "batchName": "SOT 2025",
+  "batchSlug": "batch-sot-2025",
+  "cityId": 1,
+  "cityName": "Bangalore",
+  "iat": 1641234567,
+  "exp": 1641849367
+}
+```
+
+#### **Admin Token (Current)**
+```json
+{
+  "id": 456,
+  "email": "admin@example.com",
+  "role": "TEACHER",
+  "userType": "admin",
+  "iat": 1641234567,
+  "exp": 1641849367
+}
+```
+
+#### **Admin Token (Future - After Migration)**
+```json
+{
+  "id": 456,
+  "email": "admin@example.com",
+  "role": "TEACHER",
+  "userType": "admin",
+  "batchId": 1,
+  "batchName": "SOT 2025",
+  "batchSlug": "batch-sot-2025",
+  "cityId": 1,
+  "cityName": "Bangalore",
+  "iat": 1641234567,
+  "exp": 1641849367
+}
+```
+
+---
+
+## �📋 Table of Contents
+
+### 🔐 Authentication Routes
+- Student Registration & Login
+- Admin Registration & Login  
+- Token Refresh
+- Google OAuth (Students)
+
+### 🚀 SuperAdmin Routes (`/api/superadmin`)
+- Cities Management (CRUD)
+- Batches Management (CRUD)
+- Admin Creation
+- System Statistics
+
+### 👨‍💼 Admin Routes (`/api/admin`)
+- Global Resources (Cities, Batches)
+- Topics Management (CRUD)
+- Questions Management (CRUD, Bulk Upload)
+- Classes Management (CRUD)
+- Question Assignment
+- Student Management (CRUD, Progress)
+
+### 🎓 Student Routes (`/api/student`)
+- Analytics (Weekly/Monthly)
+- Upcoming Classes
+- Personal Progress
 
 ---
 
@@ -23,7 +175,7 @@ Content-Type: application/json
 1. **Login** → Get `accessToken` + `refreshToken`
 2. **Store** tokens securely in frontend
 3. **Use `accessToken`** for all API requests
-4. **Refresh** token when expired (if implemented)
+4. **Refresh** token when expired
 
 ---
 
@@ -47,13 +199,17 @@ POST /api/auth/student/register
 **Success Response (201):**
 ```json
 {
+  "success": true,
   "message": "Student registered successfully",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
     "name": "Student Name",
     "email": "student@example.com",
-    "username": "student123"
+    "username": "student123",
+    "is_profile_complete": true,
+    "created_at": "2025-01-01T00:00:00.000Z"
   }
 }
 ```
@@ -83,14 +239,75 @@ POST /api/auth/student/login
 **Success Response (200):**
 ```json
 {
+  "success": true,
   "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
     "name": "Student Name",
     "email": "student@example.com",
-    "username": "student123"
+    "username": "student123",
+    "city": {
+      "id": 1,
+      "city_name": "Mumbai"
+    },
+    "batch": {
+      "id": 1,
+      "batch_name": "Batch A",
+      "slug": "batch-a"
+    },
+    "is_profile_complete": true,
+    "leetcode_id": "student_lc",
+    "gfg_id": "student_gfg"
   }
+}
+```
+
+---
+
+### Admin Registration (SuperAdmin only)
+```http
+POST /api/auth/admin/register
+```
+**Access**: SuperAdmin only
+
+**Request Body:**
+```json
+{
+  "name": "Teacher Name",
+  "email": "teacher@example.com",
+  "username": "teacher123",
+  "password": "password123",
+  "role": "TEACHER"
+}
+```
+
+**Valid Roles**: `TEACHER`, `INTERN`
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "message": "Admin registered successfully",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 2,
+    "name": "Teacher Name",
+    "email": "teacher@example.com",
+    "username": "teacher123",
+    "role": "TEACHER",
+    "created_at": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+**Error Response (403):**
+```json
+{
+  "success": false,
+  "error": "Only SuperAdmin can create admin accounts"
 }
 ```
 
@@ -127,11 +344,87 @@ POST /api/auth/admin/login
 
 ---
 
-## SUPERADMIN ROUTES (`/api/superadmin`)
+### Refresh Token
+```http
+POST /api/auth/refresh-token
+```
+
+**Request Body:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Error Response (403):**
+```json
+{
+  "error": "Invalid refresh token"
+}
+```
+
+---
+
+### Google Login (Students only)
+```http
+POST /api/auth/google-login
+```
+
+**Request Body:**
+```json
+{
+  "idToken": "google_id_token_here"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Google login successful",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "name": "Student Name",
+    "email": "student@example.com",
+    "username": "student123",
+    "city": {
+      "id": 1,
+      "city_name": "Mumbai"
+    },
+    "batch": {
+      "id": 1,
+      "batch_name": "Batch A",
+      "slug": "batch-a"
+    }
+  }
+}
+```
+
+**Error Response (403):**
+```json
+{
+  "error": "Student not registered by admin"
+}
+```
+
+---
+
+## 🚀 SUPERADMIN ROUTES (`/api/superadmin`)
 **Access**: SuperAdmin only  
 **Authentication**: Required
 
-### Cities Management
+> **Note**: SuperAdmin has access to all Admin routes as well
+
+### 🏙️ Cities Management
 
 #### Get All Cities
 ```http
@@ -234,7 +527,7 @@ DELETE /api/superadmin/cities/:id
 
 ---
 
-### Batches Management
+### 📚 Batches Management
 
 #### Get All Batches
 ```http
@@ -325,7 +618,7 @@ DELETE /api/superadmin/batches/:id
 
 ---
 
-### Admin Management
+### 👥 Admin Management
 
 #### Create Admin (Teacher/Intern)
 ```http
@@ -361,7 +654,7 @@ POST /api/superadmin/admins
 
 ---
 
-### System Statistics
+### 📊 System Statistics
 
 #### Get System Stats
 ```http
@@ -384,11 +677,13 @@ GET /api/superadmin/stats
 
 ---
 
-## ADMIN ROUTES (`/api/admin`)
+## 👨‍💼 ADMIN ROUTES (`/api/admin`)
 **Access**: All Admin Roles (SuperAdmin, Teacher, Intern)  
 **Authentication**: Required
 
-### Global Routes (No Batch Context)
+> **Note**: SuperAdmin can access all admin routes. Teachers have limited access to specific features.
+
+### 🌍 Global Routes (No Batch Context)
 
 #### Get All Cities
 ```http
@@ -455,7 +750,7 @@ POST /api/admin/batches
 
 ---
 
-### Topics Management
+### 📖 Topics Management
 
 #### Get All Topics
 ```http
@@ -581,7 +876,7 @@ POST /api/admin/topics/bulk
 
 ---
 
-### Questions Management
+### ❓ Questions Management
 
 #### Get All Questions
 ```http
@@ -756,7 +1051,7 @@ Two Sum,https://leetcode.com/problems/two-sum/,LEETCODE,EASY,HOMEWORK,Arrays
 
 ---
 
-### Workspace Routes (Batch Context)
+### 🏢 Workspace Routes (Batch Context)
 **All routes below require**: `batchSlug` parameter
 
 **Important Note**: Class slugs are now **topic-specific**. The same class slug (e.g., "class-1") can exist in different topics within the same batch. All class management and question assignment routes now require `topicSlug` parameter.
@@ -966,7 +1261,7 @@ DELETE /api/admin/:batchSlug/topics/:topicSlug/classes/:classSlug
 
 ---
 
-### Question Assignment Management
+### 📋 Question Assignment Management
 
 #### Assign Questions to Class
 ```http
@@ -990,8 +1285,9 @@ POST /api/admin/:batchSlug/topics/:topicSlug/classes/:classSlug/questions
 ```json
 {
   "message": "Questions assigned successfully",
-  "assigned_count": 5,
-  "duplicate_count": 0
+  "assignedCount": 5,
+  "duplicateCount": 0,
+  "totalCount": 5
 }
 ```
 
@@ -1010,7 +1306,8 @@ GET /api/admin/:batchSlug/topics/:topicSlug/classes/:classSlug/questions
 **Success Response (200):**
 ```json
 {
-  "questions": [
+  "message": "Assigned questions retrieved successfully",
+  "data": [
     {
       "id": 1,
       "question_name": "Two Sum",
@@ -1026,7 +1323,7 @@ GET /api/admin/:batchSlug/topics/:topicSlug/classes/:classSlug/questions
       "assigned_at": "2025-02-01T10:30:00.000Z"
     }
   ],
-  "total": 5
+  "count": 5
 }
 ```
 
@@ -1327,11 +1624,13 @@ Rank 3 → 85 solved
 
 ---
 
-## STUDENT ROUTES (`/api/student`)
+## 🎓 STUDENT ROUTES (`/api/student`)
 **Access**: Students only  
 **Authentication**: Required
 
-### Analytics
+> **Note**: Students can only view their own data and assigned content
+
+### 📈 Analytics
 
 #### Get Weekly Analytics
 ```http
@@ -1375,7 +1674,7 @@ GET /api/student/analytics/monthly
 
 ---
 
-### Classes
+### 📚 Classes
 
 #### Get Upcoming Classes
 ```http
@@ -1417,7 +1716,23 @@ GET /api/student/classes/upcoming
 ### Standard Error Format
 ```json
 {
+  "success": false,
   "error": "Error message here"
+}
+```
+
+### Validation Error Format
+```json
+{
+  "success": false,
+  "error": "Validation failed",
+  "details": [
+    {
+      "field": "email",
+      "message": "Invalid email format",
+      "value": "invalid-email"
+    }
+  ]
 }
 ```
 
@@ -1621,7 +1936,9 @@ curl -X POST http://localhost:5000/api/admin/batch-a/classes/class-1/questions \
 ## Implementation Checklist
 
 ### Completed Features
-- [x] Authentication (Login/Registration)
+- [x] Authentication (Login/Registration for all roles)
+- [x] Google OAuth integration for students
+- [x] Token refresh mechanism
 - [x] SuperAdmin: Cities CRUD
 - [x] SuperAdmin: Batches CRUD  
 - [x] SuperAdmin: Admin creation
@@ -1629,8 +1946,11 @@ curl -X POST http://localhost:5000/api/admin/batch-a/classes/class-1/questions \
 - [x] Admin: Questions CRUD (including bulk upload)
 - [x] Admin: Classes CRUD
 - [x] Admin: Question assignment/removal
+- [x] Admin: Student management (CRUD, progress tracking)
 - [x] Student: Basic analytics (weekly/monthly)
 - [x] Student: Upcoming classes
+- [x] Comprehensive validation and error handling
+- [x] Structured logging system
 
 ### Coming Soon (Not Implemented)
 - [ ] Student profile management
@@ -1694,7 +2014,52 @@ curl -X POST http://localhost:5000/api/admin/batch-a/classes/class-1/questions \
 
 ---
 
+### Student Model
+```json
+{
+  "id": "number",
+  "name": "string",
+  "email": "string",
+  "username": "string",
+  "password_hash": "string",
+  "leetcode_id": "string",
+  "gfg_id": "string",
+  "google_id": "string",
+  "is_profile_complete": "boolean",
+  "city_id": "number",
+  "batch_id": "number",
+  "created_at": "datetime",
+  "updated_at": "datetime",
+  "city": {
+    "id": "number",
+    "city_name": "string"
+  },
+  "batch": {
+    "id": "number",
+    "batch_name": "string",
+    "slug": "string"
+  }
+}
+```
+
+### Admin Model
+```json
+{
+  "id": "number",
+  "name": "string",
+  "email": "string",
+  "username": "string",
+  "password_hash": "string",
+  "role": "SUPERADMIN | TEACHER | INTERN",
+  "refresh_token": "string",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+---
+
 *This documentation covers all currently implemented API endpoints. For any questions or issues, contact the backend team.*
 
-**Last Updated**: February 2025  
+**Last Updated**: March 2025  
 **API Version**: 1.0.0

@@ -143,6 +143,11 @@ export const loginStudent = async (req: Request, res: Response) => {
         is_profile_complete: student.is_profile_complete,
         leetcode_id: student.leetcode_id,
         gfg_id: student.gfg_id,
+        defaultCityId: student.city_id,
+        defaultCityName: student.city?.city_name || null,
+        defaultBatchId: student.batch_id,
+        defaultBatchName: student.batch?.batch_name || null,
+        defaultBatchSlug: student.batch?.slug || null,
       },
     });
   } catch (error) {
@@ -241,7 +246,7 @@ export const loginAdmin = async (req: Request, res: Response) => {
       where: { email },
     });
 
-    if (!admin) {
+    if (!admin || !admin.password_hash) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

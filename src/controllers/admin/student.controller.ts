@@ -69,7 +69,6 @@ export const deleteStudentDetails = async (req: Request, res: Response) => {
     }
 };
 
-
 export const getAllStudentsController = async (req: Request, res: Response) => {
     try {
 
@@ -85,7 +84,6 @@ export const getAllStudentsController = async (req: Request, res: Response) => {
         });
     }
 };
-
 
 export const getStudentReportController = async (
     req: Request,
@@ -110,8 +108,6 @@ export const getStudentReportController = async (
     }
 };
 
-
-
 export const createStudentController = async (req: Request, res: Response) => {
     try {
         const student = await createStudentService(req.body);
@@ -127,8 +123,6 @@ export const createStudentController = async (req: Request, res: Response) => {
         });
     }
 };
-
-
 
 
 export const addStudentProgressController = async (

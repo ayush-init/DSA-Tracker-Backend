@@ -25,6 +25,11 @@ export interface AccessTokenPayload {
   email: string;
   role: "STUDENT" | AdminRole;
   userType: "student" | "admin";
+  batchId?: number;      // 🔑 Add for students
+  batchName?: string;    // 🔑 Add for students
+  batchSlug?: string;    // 🔑 Add for students (useful for URLs)
+  cityId?: number;       // 🔑 Add for students
+  cityName?: string;     // 🔑 Add for students
 }
 
 export interface RefreshTokenPayload {
