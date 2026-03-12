@@ -3166,6 +3166,19 @@ paths:
       description: Get all batches for system management
       security:
         - bearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+            description: "Filter batches by city name"
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+            description: "Filter batches by year"
       responses:
         '200':
           description: Batches retrieved successfully
@@ -3201,7 +3214,7 @@ paths:
               required:
                 - batch_name
                 - year
-                - city_id
+                - city
               properties:
                 batch_name:
                   type: string
@@ -3209,12 +3222,9 @@ paths:
                 year:
                   type: integer
                   example: 2026
-                city_id:
-                  type: integer
-                  example: 1
-                slug:
+                city:
                   type: string
-                  example: "so-batch-2026"
+                  example: "New York"
       responses:
         '201':
           description: Batch created successfully
@@ -3751,7 +3761,7 @@ paths:
               required:
                 - batch_name
                 - year
-                - city_id
+                - city
               properties:
                 batch_name:
                   type: string
@@ -3759,12 +3769,9 @@ paths:
                 year:
                   type: integer
                   example: 2026
-                city_id:
-                  type: integer
-                  example: 1
-                slug:
+                city:
                   type: string
-                  example: "so-batch-2026"
+                  example: "New York"
       responses:
         '201':
           description: Batch created successfully
