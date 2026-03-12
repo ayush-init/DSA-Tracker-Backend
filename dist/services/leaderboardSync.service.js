@@ -24,22 +24,7 @@ const syncLeaderboardData = async () => {
         JOIN "Question" q ON q.id = sp.question_id
         GROUP BY sp.student_id
       ),
-      streak_data AS (
-        SELECT 
-          student_id,
-          -- Max streak: Count distinct days with actual problem solving
-          COUNT(DISTINCT DATE(sp.sync_at)) as max_streak,
-          -- Current streak: Days with problem solving in last 30 days
-          (
-            SELECT COUNT(DISTINCT DATE(sp2.sync_at))
-            FROM "StudentProgress" sp2
-            WHERE sp2.student_id = sp.student_id
-            AND sp2.sync_at >= DATE(NOW() - INTERVAL '30 days')
-          ) as current_streak
-        FROM "StudentProgress" sp
-        GROUP BY student_id
-      ),
-      student_solves_weekly AS (
+            student_solves_weekly AS (
         SELECT
           sp.student_id,
           COUNT(*) FILTER (WHERE q.level='HARD')   AS hard_solved_weekly,
@@ -48,7 +33,7 @@ const syncLeaderboardData = async () => {
           COUNT(*) AS total_solved_weekly
         FROM "StudentProgress" sp
         JOIN "Question" q ON q.id = sp.question_id
-        WHERE sp.sync_at >= date_trunc('week', now())
+        WHERE sp.sync_at >= date_trunc('week', now() - interval '1 day')
         GROUP BY sp.student_id
       ),
       student_solves_monthly AS (
@@ -125,8 +110,7 @@ const syncLeaderboardData = async () => {
         LEFT JOIN student_solves_all ss_all ON ss_all.student_id = s.id
         LEFT JOIN student_solves_weekly ss_weekly ON ss_weekly.student_id = s.id
         LEFT JOIN student_solves_monthly ss_monthly ON ss_monthly.student_id = s.id
-        LEFT JOIN streak_data st ON st.student_id = s.id
-        WHERE s.batch_id IS NOT NULL
+                WHERE s.batch_id IS NOT NULL
       ),
       
       ranked_stats AS (
@@ -145,21 +129,21 @@ const syncLeaderboardData = async () => {
           -- Weekly rankings
           ROW_NUMBER() OVER (
             PARTITION BY batch_year
-            ORDER BY weekly_score DESC, total_solved_weekly DESC
+            ORDER BY weekly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_weekly DESC
           ) AS weekly_global_rank,
           ROW_NUMBER() OVER (
             PARTITION BY batch_year, city_name
-            ORDER BY weekly_score DESC, total_solved_weekly DESC
+            ORDER BY weekly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_weekly DESC
           ) AS weekly_city_rank,
           
           -- Monthly rankings
           ROW_NUMBER() OVER (
             PARTITION BY batch_year
-            ORDER BY monthly_score DESC, total_solved_monthly DESC
+            ORDER BY monthly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_monthly DESC
           ) AS monthly_global_rank,
           ROW_NUMBER() OVER (
             PARTITION BY batch_year, city_name
-            ORDER BY monthly_score DESC, total_solved_monthly DESC
+            ORDER BY monthly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_monthly DESC
           ) AS monthly_city_rank
           
         FROM final_stats
@@ -170,8 +154,8 @@ const syncLeaderboardData = async () => {
         hard_solved,
         medium_solved,
         easy_solved,
-        COALESCE(current_streak, 0) AS current_streak,
-        COALESCE(max_streak, 0) AS max_streak,
+        0 AS current_streak,
+        0 AS max_streak,
         weekly_global_rank,
         weekly_city_rank,
         monthly_global_rank,

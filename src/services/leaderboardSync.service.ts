@@ -30,7 +30,7 @@ export const syncLeaderboardData = async () => {
           COUNT(*) AS total_solved_weekly
         FROM "StudentProgress" sp
         JOIN "Question" q ON q.id = sp.question_id
-        WHERE sp.sync_at >= date_trunc('week', now())
+        WHERE sp.sync_at >= date_trunc('week', now() - interval '1 day')
         GROUP BY sp.student_id
       ),
       student_solves_monthly AS (
@@ -126,21 +126,21 @@ export const syncLeaderboardData = async () => {
           -- Weekly rankings
           ROW_NUMBER() OVER (
             PARTITION BY batch_year
-            ORDER BY weekly_score DESC, total_solved_weekly DESC
+            ORDER BY weekly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_weekly DESC
           ) AS weekly_global_rank,
           ROW_NUMBER() OVER (
             PARTITION BY batch_year, city_name
-            ORDER BY weekly_score DESC, total_solved_weekly DESC
+            ORDER BY weekly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_weekly DESC
           ) AS weekly_city_rank,
           
           -- Monthly rankings
           ROW_NUMBER() OVER (
             PARTITION BY batch_year
-            ORDER BY monthly_score DESC, total_solved_monthly DESC
+            ORDER BY monthly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_monthly DESC
           ) AS monthly_global_rank,
           ROW_NUMBER() OVER (
             PARTITION BY batch_year, city_name
-            ORDER BY monthly_score DESC, total_solved_monthly DESC
+            ORDER BY monthly_score DESC, hard_completion DESC, medium_completion DESC, easy_completion DESC, total_solved_monthly DESC
           ) AS monthly_city_rank
           
         FROM final_stats

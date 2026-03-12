@@ -3,6 +3,12 @@ import prisma from "../config/prisma";
 export const getLeaderboardService = async (query: any) => {
     const { type = "all", city = "all", year = null } = query;
 
+    // Validate type parameter
+    const validTypes = ["all", "weekly", "monthly"];
+    if (!validTypes.includes(type)) {
+        throw new Error(`Invalid type parameter. Must be one of: ${validTypes.join(", ")}`);
+    }
+
     try {
         // Dynamic rank selection based on time period
         let globalRankField = "l.alltime_global_rank";
@@ -97,6 +103,12 @@ export const getLeaderboardWithPagination = async (filters: any, pagination: any
     try {
         const { type = "all", city = "all", year = null } = filters;
         const { page = 1, limit = 20 } = pagination;
+
+        // Validate type parameter
+        const validTypes = ["all", "weekly", "monthly"];
+        if (!validTypes.includes(type)) {
+            throw new Error(`Invalid type parameter. Must be one of: ${validTypes.join(", ")}`);
+        }
 
         // Dynamic rank selection based on time period
         let globalRankField = "l.alltime_global_rank";
