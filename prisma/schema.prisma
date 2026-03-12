@@ -11,53 +11,56 @@ model City {
   id         Int       @id @default(autoincrement())
   city_name  String    @unique @db.VarChar(100)
   created_at DateTime  @default(now())
+  admins     Admin[]
   batches    Batch[]
   students   Student[]
-  admins     Admin[]   // 🔑 Add admin relation
 }
 
 model Batch {
-  id         Int       @id @default(autoincrement())
-  batch_name String    @db.VarChar(50)
-  year       Int
-  slug       String    @unique @db.VarChar(100)
-  city_id    Int
-  created_at DateTime @default(now())
-
-  city     City      @relation(fields: [city_id], references: [id], onDelete: Cascade)
-  students Student[]
-  classes  Class[]
-  admins   Admin[]   // 🔑 Add admin relation
+  id              Int       @id @default(autoincrement())
+  batch_name      String    @db.VarChar(50)
+  year            Int
+  city_id         Int
+  created_at      DateTime  @default(now())
+  slug            String    @unique @db.VarChar(100)
+  easy_assigned   Int       @default(0)
+  hard_assigned   Int       @default(0)
+  medium_assigned Int       @default(0)
+  admins          Admin[]
+  city            City      @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  classes         Class[]
+  students        Student[]
 
   @@unique([city_id, year, batch_name])
   @@index([city_id])
 }
 
 model Student {
-  id                  Int               @id @default(autoincrement())
-  name                String            @db.VarChar(100)
-  email               String            @unique @db.VarChar(150)
-  username            String            @unique @db.VarChar(100)
-  password_hash       String?
-  google_id           String?           @unique @db.VarChar(100)
-  enrollment_id       String?           @unique @db.VarChar(100)
-  city_id             Int?
-  batch_id            Int?
-  leetcode_id         String?           @db.VarChar(100)
-  gfg_id              String?           @db.VarChar(100)
-  github              String?           @db.VarChar(100)
-  linkedin            String?           @db.VarChar(150)
-  created_at          DateTime          @default(now())
-  updated_at          DateTime          @updatedAt
-  provider            String            @default("google")
-  refresh_token       String?
-  gfg_total_solved    Int               @default(0)
-  last_synced_at      DateTime?
-  lc_total_solved     Int               @default(0)
-  leaderboards        Leaderboard?
-  batch               Batch?            @relation(fields: [batch_id], references: [id])
-  city                City?             @relation(fields: [city_id], references: [id])
-  progress            StudentProgress[]
+  id               Int               @id @default(autoincrement())
+  name             String            @db.VarChar(100)
+  email            String            @unique @db.VarChar(150)
+  username         String            @unique @db.VarChar(100)
+  password_hash    String?
+  google_id        String?           @unique @db.VarChar(100)
+  enrollment_id    String?           @unique @db.VarChar(100)
+  city_id          Int?
+  batch_id         Int?
+  leetcode_id      String?           @db.VarChar(100)
+  gfg_id           String?           @db.VarChar(100)
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  provider         String            @default("google")
+  refresh_token    String?
+  gfg_total_solved Int               @default(0)
+  last_synced_at   DateTime?
+  lc_total_solved  Int               @default(0)
+  github           String?           @db.VarChar(100)
+  linkedin         String?           @db.VarChar(150)
+  leaderboards     Leaderboard?
+  batch            Batch?            @relation(fields: [batch_id], references: [id])
+  city             City?             @relation(fields: [city_id], references: [id])
+  progress         StudentProgress[]
+
   @@index([city_id])
   @@index([batch_id])
 }
@@ -68,30 +71,28 @@ model Admin {
   email         String    @unique @db.VarChar(150)
   password_hash String
   role          AdminRole @default(INTERN)
-  city_id       Int?      //  Add default city for admin
-  batch_id      Int?      //  Add default batch for admin
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
   refresh_token String?
-
-  city          City?     @relation(fields: [city_id], references: [id])
+  batch_id      Int?
+  city_id       Int?
   batch         Batch?    @relation(fields: [batch_id], references: [id])
+  city          City?     @relation(fields: [city_id], references: [id])
 
   @@index([city_id])
   @@index([batch_id])
 }
 
 model Topic {
-  id          Int      @id @default(autoincrement())
-  topic_name  String   @unique @db.VarChar(150)
-  slug        String   @unique @db.VarChar(80)
-  description String?  @db.Text
-  order       Int      @default(0)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
+  id          Int        @id @default(autoincrement())
+  topic_name  String     @unique @db.VarChar(150)
+  created_at  DateTime   @default(now())
+  slug        String     @unique @db.VarChar(80)
+  description String?
+  order       Int        @default(0)
+  updated_at  DateTime   @updatedAt
   classes     Class[]
-  questions    Question[]
+  questions   Question[]
 }
 
 model Question {
@@ -158,35 +159,28 @@ model StudentProgress {
   @@index([question_id])
 }
 
-// 🚀 Optimized leaderboard table with pre-calculated rankings
 model Leaderboard {
-  id                Int      @id @default(autoincrement())
-  student_id        Int      @unique
-  
-  // Base stats (from progress calculation)
-  max_streak        Int      @default(0)
-  easy_count        Int      @default(0)
-  medium_count      Int      @default(0)
-  hard_count        Int      @default(0)
-  
-  // Cached ranking data (updated by cron job)
-  global_rank       Int?
-  city_rank         Int?
-  score             Decimal? @db.Decimal(10, 2)
-  hard_completion   Decimal? @db.Decimal(5, 2)
-  medium_completion Decimal? @db.Decimal(5, 2)
-  easy_completion   Decimal? @db.Decimal(5, 2)
-  total_solved      Int      @default(0)
-  
-  // Filter metadata
-  filters_hash      String?  @db.VarChar(64)
-  last_calculated   DateTime @default(now()) @updatedAt
-  
-  student           Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  
-  @@index([global_rank])
-  @@index([score])
+  student_id          Int      @id
+  max_streak          Int      @default(0)
+  last_calculated     DateTime @default(now())
+  current_streak      Int      @default(0)
+  easy_solved         Int      @default(0)
+  hard_solved         Int      @default(0)
+  medium_solved       Int      @default(0)
+  alltime_city_rank   Int      @default(0)
+  alltime_global_rank Int      @default(0)
+  monthly_city_rank   Int      @default(0)
+  monthly_global_rank Int      @default(0)
+  weekly_city_rank    Int      @default(0)
+  weekly_global_rank  Int      @default(0)
+  student             Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@index([weekly_global_rank])
+  @@index([monthly_global_rank])
+  @@index([alltime_global_rank])
+  @@index([max_streak])
   @@index([last_calculated])
+  @@index([student_id])
 }
 
 enum Platform {

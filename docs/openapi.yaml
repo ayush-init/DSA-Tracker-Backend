@@ -25,6 +25,8 @@ tags:
     description: Teacher/Intern endpoints for content management
   - name: SuperAdmin
     description: SuperAdmin endpoints for system administration
+  - name: Leaderboard
+    description: Time-based ranking system with weekly, monthly, and all-time filters
   - name: Health
     description: System health and monitoring endpoints
 
@@ -459,21 +461,42 @@ paths:
   /api/students/leaderboard:
     post:
       tags:
-        - Students
-      summary: Get student leaderboard
-      description: Get leaderboard with personal rank and top performers
+        - Leaderboard
+      summary: Get student leaderboard with personal rank
+      description: Get top 10 students plus logged-in student's personal rank. Rankings are time-based (weekly/monthly/alltime) and year-wise for fair comparison.
       security:
         - bearerAuth: []
+      parameters:
+        - name: username
+          in: query
+          description: Search by username in top performers list
+          required: false
+          schema:
+            type: string
+            example: "ayush_dev"
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                limit:
+                city:
+                  type: string
+                  description: Filter by city name
+                  enum: [all, bangalore, noida, pune, lucknow]
+                  default: all
+                  example: "all"
+                year:
                   type: integer
-                  default: 10
-                  example: 10
+                  description: Filter by batch year (year-wise ranking)
+                  default: null
+                  example: 2024
+                type:
+                  type: string
+                  description: Time period filter
+                  enum: [all, weekly, monthly]
+                  default: all
+                  example: "all"
       responses:
         '200':
           description: Leaderboard retrieved successfully
@@ -1810,36 +1833,55 @@ paths:
 
     post:
       tags:
-        - Admin
-      summary: Get admin leaderboard with filters
-      description: Get batch leaderboard with pagination and search
+        - Leaderboard
+      summary: Get admin leaderboard with pagination and search
+      description: Get time-based leaderboard with pagination, search, and filters. Rankings are calculated per batch year for fair comparison with weekly, monthly, and all-time options.
       security:
         - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of results per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            example: 20
+        - name: search
+          in: query
+          description: Search by username or name
+          required: false
+          schema:
+            type: string
+            example: "ayush"
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                page:
-                  type: integer
-                  default: 1
-                  example: 1
-                limit:
-                  type: integer
-                  default: 20
-                  example: 20
-                search:
-                  type: string
-                  example: "john"
                 city:
                   type: string
-                  example: "Mumbai"
+                  description: Filter by city name
+                  enum: [all, bangalore, noida, pune, lucknow]
+                  default: all
+                  example: "bangalore"
                 year:
                   type: integer
+                  description: Filter by batch year (year-wise ranking)
+                  default: null
                   example: 2024
                 type:
                   type: string
+                  description: Time period filter
                   enum: [all, weekly, monthly]
                   default: all
                   example: "all"
@@ -1887,7 +1929,7 @@ paths:
   /api/admin/leaderboard/recalculate:
     post:
       tags:
-        - Admin
+        - Leaderboard
       summary: Recalculate leaderboard
       description: Manually trigger leaderboard recalculation for all students
       security:
@@ -1910,38 +1952,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/admin/leaderboard/restore:
-    post:
-      tags:
-        - Admin
-      summary: Restore leaderboard data
-      description: Emergency endpoint to restore missing leaderboard entries after migration
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Leaderboard data restored successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: "Restored 150 leaderboard entries"
-                  totalStudents:
-                    type: integer
-                    example: 150
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+  
   /api/admin/students:
     get:
       tags:
@@ -2580,7 +2591,7 @@ paths:
   /api/admin/leaderboard/recalculate:
     post:
       tags:
-        - Admin
+        - Leaderboard
       summary: Recalculate leaderboard
       description: Manually trigger leaderboard recalculation
       security:
@@ -4496,12 +4507,16 @@ components:
     LeaderboardEntry:
       type: object
       properties:
+        # Time-based rankings
         global_rank:
           type: integer
+          description: Global rank for selected time period (weekly/monthly/alltime)
           example: 1
         city_rank:
           type: integer
+          description: City rank for selected time period (weekly/monthly/alltime)
           example: 1
+        # Student info
         student_id:
           type: integer
           example: 123
@@ -4520,25 +4535,58 @@ components:
           example: "Mumbai"
         year:
           type: integer
+          description: Batch year
           example: 2024
-        hard_completion:
-          type: number
-          example: 85.5
-        medium_completion:
-          type: number
-          example: 72.3
-        easy_completion:
-          type: number
-          example: 90.0
-        score:
-          type: number
-          example: 2450.75
-        max_streak:
+        # Problem solving stats
+        hard_solved:
           type: integer
+          description: Number of hard problems solved
+          example: 12
+        medium_solved:
+          type: integer
+          description: Number of medium problems solved
+          example: 18
+        easy_solved:
+          type: integer
+          description: Number of easy problems solved
           example: 15
         total_solved:
           type: integer
+          description: Total problems solved
           example: 45
+        # Completion percentages
+        hard_completion:
+          type: number
+          description: Hard problem completion percentage
+          example: 85.5
+        medium_completion:
+          type: number
+          description: Medium problem completion percentage
+          example: 72.3
+        easy_completion:
+          type: number
+          description: Easy problem completion percentage
+          example: 90.0
+        # Score
+        score:
+          type: number
+          description: Dynamically calculated score based on completion percentages (hard×20 + medium×15 + easy×10)
+          example: 38.5
+        # Streak information
+        current_streak:
+          type: integer
+          description: Current solving streak (days with activity in last 30 days)
+          example: 7
+        max_streak:
+          type: integer
+          description: Maximum solving streak (distinct days with activity)
+          example: 15
+        # Metadata
+        last_calculated:
+          type: string
+          format: date-time
+          description: When this leaderboard data was last calculated
+          example: "2025-03-10T22:30:00Z"
 
     StudentProfile:
       type: object
@@ -4767,22 +4815,100 @@ components:
         success:
           type: boolean
           example: true
-        page:
-          type: integer
-          example: 1
-        limit:
-          type: integer
-          example: 20
-        totalStudents:
-          type: integer
-          example: 500
-        totalPages:
-          type: integer
-          example: 25
-        leaderboard:
+        top10:
           type: array
+          description: Top 10 students for the selected filters
           items:
             $ref: '#/components/schemas/LeaderboardEntry'
+        yourRank:
+          type: object
+          description: Logged-in student's rank information
+          properties:
+            global_rank:
+              type: integer
+              example: 5
+            city_rank:
+              type: integer
+              example: 2
+            student_details:
+              type: object
+              properties:
+                student_id:
+                  type: integer
+                  example: 15
+                name:
+                  type: string
+                  example: "Ayush Chaurasiya"
+                username:
+                  type: string
+                  example: "ayush_dev"
+                email:
+                  type: string
+                  example: "ayush@example.com"
+                city:
+                  type: string
+                  example: "Bangalore"
+                batch_year:
+                  type: integer
+                  example: 2024
+            rank_statistics:
+              type: object
+              properties:
+                global_rank:
+                  type: integer
+                  example: 5
+                city_rank:
+                  type: integer
+                  example: 2
+                score:
+                  type: number
+                  example: 38.5
+                max_streak:
+                  type: integer
+                  example: 6
+                total_solved:
+                  type: integer
+                  example: 16
+                hard_completion:
+                  type: number
+                  example: 66.67
+                medium_completion:
+                  type: number
+                  example: 100.0
+                easy_completion:
+                  type: number
+                  example: 100.0
+            problem_solving_stats:
+              type: object
+              properties:
+                total_questions_solved:
+                  type: integer
+                  example: 16
+                easy_solved:
+                  type: integer
+                  example: 4
+                medium_solved:
+                  type: integer
+                  example: 2
+                hard_solved:
+                  type: integer
+                  example: 10
+        message:
+          type: string
+          description: Message if student's rank not found (e.g., year mismatch)
+          example: null
+        filters:
+          type: object
+          properties:
+            city:
+              type: string
+              example: "all"
+            year:
+              type: integer
+              example: 2024
+            type:
+              type: string
+              example: "all"
 
     AdminLeaderboard:
       type: object

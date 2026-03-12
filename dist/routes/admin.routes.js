@@ -1,7 +1,4 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
@@ -17,11 +14,9 @@ const upload_middleware_1 = require("../middlewares/upload.middleware");
 const dashboard_controller_1 = require("../controllers/dashboard.controller");
 const admin_controller_1 = require("../controllers/admin.controller");
 const leaderboard_controller_1 = require("../controllers/leaderboard.controller");
-const prisma_1 = __importDefault(require("../config/prisma"));
 const questionVisibility_controller_1 = require("../controllers/questionVisibility.controller");
 const class_controller_1 = require("../controllers/class.controller");
 const progress_controller_1 = require("../controllers/progress.controller");
-const test_controller_1 = require("../controllers/test.controller");
 const student_controller_1 = require("../controllers/student.controller");
 const bulk_controller_1 = require("../controllers/bulk.controller");
 // import {
@@ -65,47 +60,8 @@ router.get("/dashboard", dashboard_controller_1.getDashboardController);
 // Admin Statistics
 router.post("/stats", admin_controller_1.getAdminStats);
 // Leaderboard
-router.get("/leaderboard", leaderboard_controller_1.getAdminLeaderboard);
 router.post("/leaderboard", auth_middleware_1.verifyToken, role_middleware_1.isAdmin, leaderboard_controller_1.getAdminLeaderboard); // Single admin leaderboard with pagination and search
-router.post("/leaderboard/recalculate", leaderboard_controller_1.recalculateLeaderboard);
-// 🚨 Emergency: Restore leaderboard data after migration
-router.post("/leaderboard/restore", async (req, res) => {
-    try {
-        console.log("🔄 Restoring leaderboard data...");
-        // Get all students
-        const students = await prisma_1.default.student.findMany({ select: { id: true } });
-        // Create leaderboard entries for each student
-        let created = 0;
-        for (const student of students) {
-            const existing = await prisma_1.default.leaderboard.findUnique({
-                where: { student_id: student.id }
-            });
-            if (!existing) {
-                await prisma_1.default.leaderboard.create({
-                    data: {
-                        student_id: student.id,
-                        max_streak: 0,
-                        easy_count: 0,
-                        medium_count: 0,
-                        hard_count: 0,
-                        total_solved: 0
-                    }
-                });
-                created++;
-            }
-        }
-        res.json({
-            success: true,
-            message: `Restored ${created} leaderboard entries`,
-            totalStudents: students.length
-        });
-    }
-    catch (error) {
-        console.error("Restore failed:", error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-router.get("/questions", question_controller_1.getAssignedQuestionsController);
+router.get("/assignedquestions", question_controller_1.getAssignedQuestionsController);
 router.patch("/students/:id", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.updateStudentDetails);
 // Delete (Hard Delete)
 router.delete("/students/:id", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.deleteStudentDetails);
@@ -113,8 +69,8 @@ router.get("/students", student_controller_1.getAllStudentsController);
 router.get("/students/:username", student_controller_1.getStudentReportController);
 router.post("/students", role_middleware_1.isTeacherOrAbove, student_controller_1.createStudentController);
 router.post("/students/progress", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.addStudentProgressController);
-router.get("/test/leetcode/:username", test_controller_1.testLeetcode);
-router.get("/test/gfg/:username", test_controller_1.testGfg);
+// router.get("/test/leetcode/:username", testLeetcode);
+// router.get("/test/gfg/:username", testGfg);
 router.post("/students/sync/:id", progress_controller_1.manualSync);
 router.post("/bulk-operations", upload_middleware_1.upload.single("file"), bulk_controller_1.bulkStudentUploadController);
 // Everything below requires valid batchSlug

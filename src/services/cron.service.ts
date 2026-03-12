@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { syncLeaderboardCache } from '../services/leaderboard.service';
+import { syncLeaderboardData } from '../services/leaderboardSync.service';
 
 // 🚀 Start Cron Jobs
 export const startCronJobs = () => {
@@ -10,7 +10,7 @@ export const startCronJobs = () => {
     cron.schedule('0 0 * * *', async () => {
         try {
             console.log('🌙 Running midnight leaderboard sync...');
-            await syncLeaderboardCache();
+            await syncLeaderboardData();
             console.log('✅ Midnight leaderboard sync completed');
         } catch (error) {
             console.error('❌ Midnight leaderboard sync failed:', error);
@@ -26,7 +26,7 @@ export const startCronJobs = () => {
 export const triggerLeaderboardSync = async () => {
     try {
         console.log('🔄 Manual leaderboard sync triggered...');
-        await syncLeaderboardCache();
+        await syncLeaderboardData();
         console.log('✅ Manual leaderboard sync completed');
         return { success: true, message: 'Leaderboard sync completed successfully' };
     } catch (error) {

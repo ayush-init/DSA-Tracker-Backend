@@ -1,13 +1,15 @@
 import cron from "node-cron";
 import { runStudentSyncWorker } from "../workers/sync.worker";
-import { syncLeaderboardCache } from "../services/leaderboard.service";
+import { syncLeaderboardData } from "../services/leaderboardSync.service";
 
 export function startSyncJob() {
 
   console.log("Sync cron job started");
   
   // 🚀 Combined sync job: Student Progress FIRST, then Leaderboard
-  cron.schedule("0 */4 * * *", async () => {
+  // cron.schedule("0 */4 * * *", async () => {
+  cron.schedule("* * * * *", async () => {
+
     console.log("🔄 Starting combined sync cycle...");
     
     try {
@@ -21,7 +23,7 @@ export function startSyncJob() {
       // Step 2: Update leaderboard after student progress is complete
       console.log("🏆 Step 2: Updating leaderboard cache...");
       const leaderboardSyncStart = Date.now();
-      await syncLeaderboardCache();
+      await syncLeaderboardData();
       const leaderboardSyncDuration = Date.now() - leaderboardSyncStart;
       console.log(`✅ Leaderboard sync completed in ${leaderboardSyncDuration}ms`);
       
@@ -34,5 +36,5 @@ export function startSyncJob() {
   });
 
   console.log("✅ Sequential cron job started successfully");
-  console.log("📅 Combined sync: Every 4 hours (Student Progress → Leaderboard)");
+  console.log("📅 Combined sync: Every 4 hours at minute 0 (Student Progress → Leaderboard)");
 }
