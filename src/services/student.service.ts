@@ -90,13 +90,14 @@ export const getAllStudentsService = async (query: any) => {
         ]);
 
         // Get leaderboard data separately with rank filters
+        const studentIds = students.map(s => s.id);
         let leaderboardQuery = `
             SELECT 
                 student_id,
                 alltime_global_rank as global_rank,
                 alltime_city_rank as city_rank
             FROM "Leaderboard"
-            WHERE student_id = ANY(${students.map(s => s.id)})
+            WHERE student_id = ANY($1)
         `;
 
         // Add rank filters if provided
@@ -110,7 +111,7 @@ export const getAllStudentsService = async (query: any) => {
             leaderboardQuery += ` AND ${rankFilters.join(' AND ')}`;
         }
 
-        const leaderboardData = await prisma.$queryRawUnsafe(leaderboardQuery);
+        const leaderboardData = await prisma.$queryRawUnsafe(leaderboardQuery, studentIds);
 
         // Create a map for quick lookup
         const leaderboardMap = new Map(

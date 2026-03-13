@@ -352,7 +352,7 @@ export const getStudentRankDirect = async (studentId: number, filters: any) => {
         let cityFilter = "";
         
         if (city && city !== "all") {
-            cityFilter = `AND c.city_name = $${params.length}`;
+            cityFilter = `AND c.city_name = $${params.length+1}`;
             params.push(city);
         }
         

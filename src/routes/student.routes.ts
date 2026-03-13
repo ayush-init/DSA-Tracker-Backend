@@ -6,12 +6,13 @@ import { getTopicsWithBatchProgress, getTopicOverviewWithClassesSummary } from "
 import { getClassDetailsWithFullQuestions } from "../controllers/class.controller";
 import { getAllQuestionsWithFilters } from "../controllers/questionVisibility.controller";
 import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
-import { getStudentProfile, getPublicStudentProfile } from "../controllers/studentProfile.controller";
+import { getStudentProfile } from "../controllers/studentProfile.controller";
 
 const router = Router();
 
 // All routes require authentication + STUDENT role + student info extraction
 router.use(verifyToken, isStudent, extractStudentInfo);
+
 
 
 // ===== TOPICS ROUTES =====
@@ -28,7 +29,15 @@ router.get("/addedQuestions", getAllQuestionsWithFilters); // All questions with
 router.post("/leaderboard", getStudentLeaderboard); // Single student leaderboard with top 10 and personal rank
 
 // ===== PROFILE ROUTES =====
+// router.get("/profile/lite", getStudentProfileLite); // Fast loading - essential data only
 router.get("/profile", getStudentProfile); // Complete student profile with all sections
-router.get("/profile/:username", getPublicStudentProfile);
 
+
+// router.get("/test/basic", testStudentBasicInfo);
+// router.get("/test/stats", testCodingStats);
+// router.get("/test/streak", testStreak);
+// router.get("/test/leaderboard", testLeaderboard);
+// router.get("/test/heatmap", testHeatmap);
+// router.get("/test/topic", testTopicProgress);
+// router.get("/test/activity", testRecentActivity);
 export default router;
