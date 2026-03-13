@@ -62,46 +62,7 @@ router.post("/questions/bulk-upload", role_middleware_1.isTeacherOrAbove, upload
 router.get("/dashboard", dashboard_controller_1.getDashboardController);
 // Admin Statistics
 router.post("/stats", admin_controller_1.getAdminStats);
-// Leaderboard
-// router.get("/leaderboard", getAdminLeaderboard);
 router.post("/leaderboard", auth_middleware_1.verifyToken, role_middleware_1.isAdmin, leaderboard_controller_1.getAdminLeaderboard); // Single admin leaderboard with pagination and search
-// router.post("/leaderboard/recalculate", recalculateLeaderboard);
-// 🚨 Emergency: Restore leaderboard data after migration
-// router.post("/leaderboard/restore", async (req, res) => {
-//   try {
-//     console.log("🔄 Restoring leaderboard data...");
-//     // Get all students
-//     const students = await prisma.student.findMany({ select: { id: true } });
-//     // Create leaderboard entries for each student
-//     let created = 0;
-//     for (const student of students) {
-//       const existing = await (prisma as any).leaderboard.findUnique({
-//         where: { student_id: student.id }
-//       });
-//       if (!existing) {
-//         await (prisma as any).leaderboard.create({
-//           data: {
-//             student_id: student.id,
-//             max_streak: 0,
-//             easy_count: 0,
-//             medium_count: 0,
-//             hard_count: 0,
-//             total_solved: 0
-//           }
-//         });
-//         created++;
-//       }
-//     }
-//     res.json({ 
-//       success: true, 
-//       message: `Restored ${created} leaderboard entries`,
-//       totalStudents: students.length 
-//     });
-//   } catch (error) {
-//     console.error("Restore failed:", error);
-//     res.status(500).json({ success: false, error: (error as any).message });
-//   }
-// });
 router.get("/questions", question_controller_1.getAssignedQuestionsController);
 router.patch("/students/:id", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.updateStudentDetails);
 // Delete (Hard Delete)

@@ -9,10 +9,8 @@ import { createTopic, deleteTopic, getAllTopics, getTopicsForBatch, updateTopic 
 import { createQuestion, deleteQuestion, getAllQuestions, getAssignedQuestionsController, updateQuestion } from "../controllers/question.controller";
 import { bulkUploadQuestions } from "../controllers/questionBulk.controller";
 import { upload } from "../middlewares/upload.middleware";
-import { getDashboardController } from "../controllers/dashboard.controller";
-import { createAdminController, getAdminStats, getAllAdminsController, forceSyncStudent } from "../controllers/admin.controller";
+import {  getAdminStats } from "../controllers/admin.controller";
 import { getAdminLeaderboard } from "../controllers/leaderboard.controller";
-import prisma from "../config/prisma";
 import { assignQuestionsToClass, getAssignedQuestionsOfClass, removeQuestionFromClass } from "../controllers/questionVisibility.controller";
 import { createClassInTopic, deleteClass, getClassDetails, getClassesByTopic, updateClass } from "../controllers/class.controller";
 import { manualSync } from "../controllers/progress.controller";
@@ -44,15 +42,7 @@ router.use(extractAdminInfo);  // Add admin info extraction
 router.get("/cities", getAllCities);
 
 // Batches
-router.post("/batches", createBatch);
 router.get("/batches", getAllBatches);
-
-// Admin Management
-router.post("/admins", createAdminController);
-router.get("/admins", getAllAdminsController);
-
-// Force Sync Student
-router.post("/force-sync-student", forceSyncStudent);
 
 // Global Topics
 router.get("/topics", getAllTopics);
@@ -82,12 +72,8 @@ router.post(
   bulkUploadQuestions
 );
 
-/* ---------- Students ---------- */
 
-// Student CRUD
-// Update
 
-router.get("/dashboard", getDashboardController);
 
 // Admin Statistics
 router.post("/stats", getAdminStats);
@@ -158,7 +144,7 @@ router.delete(
 
 // Question assignment routes (topic context required)
 router.post(
-  "j",
+  "/:batchSlug/topics/:topicSlug/classes/:classSlug/questions",
   isTeacherOrAbove,
   assignQuestionsToClass
 );
@@ -167,7 +153,7 @@ router.get(
   "/:batchSlug/topics/:topicSlug/classes/:classSlug/questions",
   getAssignedQuestionsOfClass
 );
-
+0
 router.delete(
   "/:batchSlug/topics/:topicSlug/classes/:classSlug/questions/:questionId",
   isTeacherOrAbove,

@@ -56,11 +56,13 @@ const getLeaderboardService = async (query) => {
         }
         // Build filters - year is now always required
         const params = [];
-        let whereClause = `WHERE b.year = $${params.length}`;
+        let whereClause = `WHERE b.year = $1`;
         params.push(year);
+        let paramIndex = 2;
         if (city && city !== "all") {
-            whereClause += ` AND c.city_name = $${params.length}`;
+            whereClause += ` AND c.city_name = $${paramIndex}`;
             params.push(city);
+            paramIndex++;
         }
         const leaderboardQuery = `
             SELECT
@@ -132,7 +134,28 @@ const getLeaderboardService = async (query) => {
     }
     catch (error) {
         console.error("Leaderboard service error:", error);
-        throw error;
+        // Provide detailed error information
+        if (error instanceof Error) {
+            // Check for specific database errors
+            if (error.message.includes('parameter')) {
+                throw new Error(`Database query parameter error: ${error.message}. This usually indicates a problem with SQL parameter binding.`);
+            }
+            else if (error.message.includes('42P02')) {
+                throw new Error(`Database parameter error: Invalid parameter placeholder in SQL query. Please check the query construction.`);
+            }
+            else if (error.message.includes('42703')) {
+                throw new Error(`Database column error: A referenced column does not exist. ${error.message}`);
+            }
+            else if (error.message.includes('42P01')) {
+                throw new Error(`Database table error: A referenced table does not exist. ${error.message}`);
+            }
+            else {
+                throw new Error(`Leaderboard service error: ${error.message}`);
+            }
+        }
+        else {
+            throw new Error(`Unknown leaderboard service error: ${String(error)}`);
+        }
     }
 };
 exports.getLeaderboardService = getLeaderboardService;
@@ -171,15 +194,18 @@ const getLeaderboardWithPagination = async (filters, pagination, search) => {
         }
         // Build filters - year is now always required
         const params = [];
-        let whereClause = `WHERE b.year = $${params.length}`;
+        let whereClause = `WHERE b.year = $1`;
         params.push(year);
+        let paramIndex = 2;
         if (city && city !== "all") {
-            whereClause += ` AND c.city_name = $${params.length}`;
+            whereClause += ` AND c.city_name = $${paramIndex}`;
             params.push(city);
+            paramIndex++;
         }
         if (search) {
-            whereClause += ` AND (s.name ILIKE $${params.length} OR s.username ILIKE $${params.length + 1})`;
+            whereClause += ` AND (s.name ILIKE $${paramIndex} OR s.username ILIKE $${paramIndex + 1})`;
             params.push(`%${search}%`, `%${search}%`);
+            paramIndex += 2;
         }
         // Get total count
         const countQuery = `
@@ -270,8 +296,29 @@ const getLeaderboardWithPagination = async (filters, pagination, search) => {
         };
     }
     catch (error) {
-        console.error("Leaderboard service error:", error);
-        throw new Error(error instanceof Error ? error.message : String(error));
+        console.error("Leaderboard pagination error:", error);
+        // Provide detailed error information
+        if (error instanceof Error) {
+            // Check for specific database errors
+            if (error.message.includes('parameter')) {
+                throw new Error(`Database query parameter error: ${error.message}. This usually indicates a problem with SQL parameter binding.`);
+            }
+            else if (error.message.includes('42P02')) {
+                throw new Error(`Database parameter error: Invalid parameter placeholder in SQL query. Please check the query construction.`);
+            }
+            else if (error.message.includes('42703')) {
+                throw new Error(`Database column error: A referenced column does not exist. ${error.message}`);
+            }
+            else if (error.message.includes('42P01')) {
+                throw new Error(`Database table error: A referenced table does not exist. ${error.message}`);
+            }
+            else {
+                throw new Error(`Leaderboard pagination error: ${error.message}`);
+            }
+        }
+        else {
+            throw new Error(`Unknown leaderboard pagination error: ${String(error)}`);
+        }
     }
 };
 exports.getLeaderboardWithPagination = getLeaderboardWithPagination;
@@ -320,7 +367,28 @@ const getStudentRankDirect = async (studentId, filters) => {
     }
     catch (error) {
         console.error("Student rank lookup error:", error);
-        throw new Error(error instanceof Error ? error.message : String(error));
+        // Provide detailed error information
+        if (error instanceof Error) {
+            // Check for specific database errors
+            if (error.message.includes('parameter')) {
+                throw new Error(`Database query parameter error: ${error.message}. This usually indicates a problem with SQL parameter binding.`);
+            }
+            else if (error.message.includes('42P02')) {
+                throw new Error(`Database parameter error: Invalid parameter placeholder in SQL query. Please check the query construction.`);
+            }
+            else if (error.message.includes('42703')) {
+                throw new Error(`Database column error: A referenced column does not exist. ${error.message}`);
+            }
+            else if (error.message.includes('42P01')) {
+                throw new Error(`Database table error: A referenced table does not exist. ${error.message}`);
+            }
+            else {
+                throw new Error(`Student rank lookup error: ${error.message}`);
+            }
+        }
+        else {
+            throw new Error(`Unknown student rank lookup error: ${String(error)}`);
+        }
     }
 };
 exports.getStudentRankDirect = getStudentRankDirect;
