@@ -10,7 +10,7 @@ import { createQuestion, deleteQuestion, getAllQuestions, getAssignedQuestionsCo
 import { bulkUploadQuestions } from "../controllers/questionBulk.controller";
 import { upload } from "../middlewares/upload.middleware";
 import { getDashboardController } from "../controllers/dashboard.controller";
-import { createAdminController, getAdminStats, getAllAdminsController } from "../controllers/admin.controller";
+import { createAdminController, getAdminStats, getAllAdminsController, forceSyncStudent } from "../controllers/admin.controller";
 import { getAdminLeaderboard } from "../controllers/leaderboard.controller";
 import prisma from "../config/prisma";
 import { assignQuestionsToClass, getAssignedQuestionsOfClass, removeQuestionFromClass } from "../controllers/questionVisibility.controller";
@@ -50,6 +50,9 @@ router.get("/batches", getAllBatches);
 // Admin Management
 router.post("/admins", createAdminController);
 router.get("/admins", getAllAdminsController);
+
+// Force Sync Student
+router.post("/force-sync-student", forceSyncStudent);
 
 // Global Topics
 router.get("/topics", getAllTopics);

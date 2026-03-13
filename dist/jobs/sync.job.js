@@ -10,8 +10,7 @@ const leaderboardSync_service_1 = require("../services/leaderboardSync.service")
 function startSyncJob() {
     console.log("Sync cron job started");
     // 🚀 Combined sync job: Student Progress FIRST, then Leaderboard
-    // cron.schedule("0 */4 * * *", async () => {
-    node_cron_1.default.schedule("* * * * *", async () => {
+    node_cron_1.default.schedule("0 */4 * * *", async () => {
         console.log("🔄 Starting combined sync cycle...");
         try {
             // Step 1: Update student progress first

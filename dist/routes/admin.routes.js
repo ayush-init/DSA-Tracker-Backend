@@ -41,6 +41,8 @@ router.get("/batches", batch_controller_1.getAllBatches);
 // Admin Management
 router.post("/admins", admin_controller_1.createAdminController);
 router.get("/admins", admin_controller_1.getAllAdminsController);
+// Force Sync Student
+router.post("/force-sync-student", admin_controller_1.forceSyncStudent);
 // Global Topics
 router.get("/topics", topic_controller_1.getAllTopics);
 router.post("/topics", role_middleware_1.isTeacherOrAbove, topic_controller_1.createTopic);

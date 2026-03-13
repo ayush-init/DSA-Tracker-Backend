@@ -488,7 +488,7 @@ paths:
                   example: "all"
                 year:
                   type: integer
-                  description: Filter by batch year (year-wise ranking)
+                  description: Filter by batch year (required for year-wise ranking). Must be 2024 or 2025. "all" is not supported.
                   default: null
                   example: 2024
                 type:
@@ -1876,7 +1876,7 @@ paths:
                   example: "bangalore"
                 year:
                   type: integer
-                  description: Filter by batch year (year-wise ranking)
+                  description: Filter by batch year (required for year-wise ranking). Must be 2024 or 2025. "all" is not supported.
                   default: null
                   example: 2024
                 type:

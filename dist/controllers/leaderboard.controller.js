@@ -94,9 +94,24 @@ const getStudentLeaderboard = async (req, res) => {
         let yourRank = null;
         let rankMessage = null;
         if (studentEntry) {
+            // Get rankings based on the selected time period
+            let globalRank, cityRank;
+            switch (filters.type) {
+                case 'weekly':
+                    globalRank = studentEntry.weekly_global_rank;
+                    cityRank = studentEntry.weekly_city_rank;
+                    break;
+                case 'monthly':
+                    globalRank = studentEntry.monthly_global_rank;
+                    cityRank = studentEntry.monthly_city_rank;
+                    break;
+                default:
+                    globalRank = studentEntry.alltime_global_rank;
+                    cityRank = studentEntry.alltime_city_rank;
+            }
             yourRank = {
-                global_rank: studentEntry.global_rank,
-                city_rank: studentEntry.city_rank,
+                global_rank: globalRank,
+                city_rank: cityRank,
                 student_details: {
                     student_id: studentId,
                     name: student.name,
@@ -111,8 +126,8 @@ const getStudentLeaderboard = async (req, res) => {
                     last_synced_at: student.last_synced_at
                 },
                 rank_statistics: {
-                    global_rank: studentEntry.global_rank,
-                    city_rank: studentEntry.city_rank,
+                    global_rank: globalRank,
+                    city_rank: cityRank,
                     score: studentEntry.score,
                     max_streak: studentEntry.max_streak,
                     total_solved: studentEntry.total_solved,
@@ -251,8 +266,8 @@ const getLeaderboardByType = async (req, res) => {
             }
         });
         const studentRank = studentEntry ? {
-            global_rank: studentEntry.global_rank,
-            city_rank: studentEntry.city_rank,
+            global_rank: studentEntry.alltime_global_rank,
+            city_rank: studentEntry.alltime_city_rank,
             student_details: {
                 student_id: studentId,
                 name: student?.name || '',
@@ -268,8 +283,8 @@ const getLeaderboardByType = async (req, res) => {
                 last_synced_at: student?.last_synced_at
             },
             rank_statistics: {
-                global_rank: studentEntry.global_rank,
-                city_rank: studentEntry.city_rank,
+                global_rank: studentEntry.alltime_global_rank,
+                city_rank: studentEntry.alltime_city_rank,
                 score: studentEntry.score,
                 max_streak: studentEntry.max_streak,
                 total_solved: studentEntry.total_solved,

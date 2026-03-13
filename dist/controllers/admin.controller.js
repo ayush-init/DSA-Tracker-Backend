@@ -3,9 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAdminController = exports.updateAdminController = exports.getAllAdminsController = exports.createAdminController = exports.getAdminStats = void 0;
+exports.forceSyncStudent = exports.deleteAdminController = exports.updateAdminController = exports.getAllAdminsController = exports.createAdminController = exports.getAdminStats = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
 const admin_service_1 = require("../services/admin.service");
+const progressSync_service_1 = require("../services/progressSync.service");
 const getAdminStats = async (req, res) => {
     try {
         const { batch_id } = req.body;
@@ -210,3 +211,60 @@ const deleteAdminController = async (req, res) => {
     }
 };
 exports.deleteAdminController = deleteAdminController;
+const forceSyncStudent = async (req, res) => {
+    try {
+        const { student_id } = req.body;
+        // Validate student_id
+        if (!student_id || isNaN(parseInt(student_id))) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid student_id is required"
+            });
+        }
+        const studentId = parseInt(student_id);
+        // Check if student exists
+        const student = await prisma_1.default.student.findUnique({
+            where: { id: studentId },
+            select: {
+                id: true,
+                name: true,
+                leetcode_id: true,
+                gfg_id: true,
+                lc_total_solved: true,
+                gfg_total_solved: true,
+                last_synced_at: true
+            }
+        });
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: "Student not found"
+            });
+        }
+        console.log(`🔄 Force syncing student: ${student.name} (ID: ${studentId})`);
+        // Force sync the student
+        const result = await (0, progressSync_service_1.syncOneStudent)(studentId, true);
+        console.log(`✅ Force sync completed for ${student.name}:`, result);
+        return res.status(200).json({
+            success: true,
+            message: "Force sync completed successfully",
+            data: {
+                student: {
+                    id: student.id,
+                    name: student.name,
+                    leetcode_id: student.leetcode_id,
+                    gfg_id: student.gfg_id
+                },
+                sync_result: result
+            }
+        });
+    }
+    catch (error) {
+        console.error("Force sync error:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to force sync student"
+        });
+    }
+};
+exports.forceSyncStudent = forceSyncStudent;

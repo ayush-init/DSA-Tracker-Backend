@@ -5,8 +5,9 @@ export async function runStudentSyncWorker() {
 
   console.log("🚀 Student sync worker started");
 
-  // 4 hours ago
+  // 4 hours ago - but also include students who haven't synced for 2 hours to catch up
   const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
   // Fetch only students that actually need syncing
   const students = await prisma.student.findMany({
@@ -16,7 +17,7 @@ export async function runStudentSyncWorker() {
         { last_synced_at: null },
         {
           last_synced_at: {
-            lt: fourHoursAgo
+            lt: twoHoursAgo  // Changed to 2 hours to catch up on stale students
           }
         }
       ]
@@ -36,7 +37,7 @@ export async function runStudentSyncWorker() {
 
     await Promise.all(
       batch.map(student =>
-        syncOneStudent(student.id).catch(err => {
+        syncOneStudent(student.id, false).catch(err => {
           console.error(`❌ Failed syncing student ${student.id}`, err);
         })
       )

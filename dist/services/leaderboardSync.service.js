@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.syncLeaderboardData = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
+const streakCalculator_1 = require("../utils/streakCalculator");
 const syncLeaderboardData = async () => {
     console.log("🔄 Starting leaderboard sync...");
     try {
@@ -49,6 +50,14 @@ const syncLeaderboardData = async () => {
         GROUP BY sp.student_id
       ),
       
+      student_activity_dates AS (
+        SELECT
+          sp.student_id,
+          array_agg(DATE(sp.sync_at) ORDER BY sp.sync_at DESC) AS activity_dates
+        FROM "StudentProgress" sp
+        GROUP BY sp.student_id
+      ),
+      
       final_stats AS (
         SELECT
           s.id AS student_id,
@@ -74,6 +83,9 @@ const syncLeaderboardData = async () => {
           COALESCE(ss_monthly.medium_solved_monthly,0) AS medium_solved_monthly,
           COALESCE(ss_monthly.easy_solved_monthly,0) AS easy_solved_monthly,
           COALESCE(ss_monthly.total_solved_monthly,0) AS total_solved_monthly,
+          
+          -- Activity dates for streak calculation
+          COALESCE(ad.activity_dates, ARRAY[]::DATE[]) AS activity_dates,
           
           -- Assigned counts from Batch table
           b.hard_assigned,
@@ -110,6 +122,7 @@ const syncLeaderboardData = async () => {
         LEFT JOIN student_solves_all ss_all ON ss_all.student_id = s.id
         LEFT JOIN student_solves_weekly ss_weekly ON ss_weekly.student_id = s.id
         LEFT JOIN student_solves_monthly ss_monthly ON ss_monthly.student_id = s.id
+        LEFT JOIN student_activity_dates ad ON ad.student_id = s.id
                 WHERE s.batch_id IS NOT NULL
       ),
       
@@ -154,8 +167,7 @@ const syncLeaderboardData = async () => {
         hard_solved,
         medium_solved,
         easy_solved,
-        0 AS current_streak,
-        0 AS max_streak,
+        activity_dates,
         weekly_global_rank,
         weekly_city_rank,
         monthly_global_rank,
@@ -165,10 +177,13 @@ const syncLeaderboardData = async () => {
       FROM ranked_stats
     `);
         console.log(`📊 Calculated data for ${result.length} students`);
-        // Step 3: Bulk upsert new data
+        // Step 3: Bulk upsert new data with streak calculation
         if (result.length > 0) {
             const values = result.map((row) => {
-                return `(${row.student_id}, ${row.hard_solved}, ${row.medium_solved}, ${row.easy_solved}, ${row.current_streak}, ${row.max_streak}, ${row.weekly_global_rank}, ${row.weekly_city_rank}, ${row.monthly_global_rank}, ${row.monthly_city_rank}, ${row.alltime_global_rank}, ${row.alltime_city_rank}, NOW())`;
+                // Calculate streaks for this student
+                const activityDates = row.activity_dates || [];
+                const streaks = (0, streakCalculator_1.calculateStreakByActivity)(activityDates);
+                return `(${row.student_id}, ${row.hard_solved}, ${row.medium_solved}, ${row.easy_solved}, ${streaks.currentStreak}, ${streaks.maxStreak}, ${row.weekly_global_rank}, ${row.weekly_city_rank}, ${row.monthly_global_rank}, ${row.monthly_city_rank}, ${row.alltime_global_rank}, ${row.alltime_city_rank}, NOW())`;
             }).join(',');
             await prisma_1.default.$executeRawUnsafe(`
         INSERT INTO "Leaderboard" (

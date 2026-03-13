@@ -10,7 +10,7 @@ const gfg_service_1 = require("./gfg.service");
 function extractSlug(url) {
     return url.split("/problems/")[1]?.split("/")[0];
 }
-async function syncOneStudent(studentId) {
+async function syncOneStudent(studentId, forceSync = false) {
     // 1️⃣ Load student + already solved progress
     const student = await prisma_1.default.student.findUnique({
         where: { id: studentId },
@@ -58,14 +58,16 @@ async function syncOneStudent(studentId) {
     // ===============================
     if (student.leetcode_id) {
         const lcData = await (0, leetcode_service_1.fetchLeetcodeData)(student.leetcode_id);
+        const shouldSyncLeetCode = forceSync || lcData.totalSolved > student.lc_total_solved;
         console.log("🔍 DEBUG: LeetCode Data:", {
             username: student.leetcode_id,
             totalSolved: lcData.totalSolved,
             studentTotalSolved: student.lc_total_solved,
             submissions: lcData.submissions.length,
-            shouldSync: lcData.totalSolved > student.lc_total_solved
+            forceSync: forceSync,
+            shouldSync: shouldSyncLeetCode
         });
-        if (lcData.totalSolved > student.lc_total_solved) {
+        if (shouldSyncLeetCode) {
             lcData.submissions
                 .filter(sub => sub.statusDisplay === "Accepted")
                 .forEach(sub => {
@@ -99,14 +101,16 @@ async function syncOneStudent(studentId) {
     // ===============================
     if (student.gfg_id) {
         const gfgData = await (0, gfg_service_1.fetchGfgData)(student.gfg_id);
+        const shouldSyncGFG = forceSync || gfgData.totalSolved > student.gfg_total_solved;
         console.log("🔍 DEBUG: GFG Data:", {
             handle: student.gfg_id,
             totalSolved: gfgData.totalSolved,
             studentTotalSolved: student.gfg_total_solved,
             solvedSlugs: gfgData.solvedSlugs.length,
-            shouldSync: gfgData.totalSolved > student.gfg_total_solved
+            forceSync: forceSync,
+            shouldSync: shouldSyncGFG
         });
-        if (gfgData.totalSolved > student.gfg_total_solved) {
+        if (shouldSyncGFG) {
             gfgData.solvedSlugs.forEach(slug => {
                 const questionId = questionMap.get(slug);
                 if (questionId && !solvedSet.has(questionId)) {
@@ -142,6 +146,8 @@ async function syncOneStudent(studentId) {
     }
     return {
         message: "Sync completed",
-        newSolved: newProgressEntries.length
+        newSolved: newProgressEntries.length,
+        hadNewSolutions: newProgressEntries.length > 0,
+        forceSyncUsed: forceSync
     };
 }

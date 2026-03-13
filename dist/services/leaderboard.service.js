@@ -6,11 +6,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLeaderboardWithPagination = exports.getLeaderboardService = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
 const getLeaderboardService = async (query) => {
-    const { type = "all", city = "all", year = null } = query;
+    let { type = "all", city = "all", year = null } = query;
     // Validate type parameter
     const validTypes = ["all", "weekly", "monthly"];
     if (!validTypes.includes(type)) {
         throw new Error(`Invalid type parameter. Must be one of: ${validTypes.join(", ")}`);
+    }
+    // Validate year parameter - leaderboard is year-wise, so "all" is not valid
+    const validYears = [2024, 2025]; // Available batch years
+    if (year && year !== "all" && !validYears.includes(year)) {
+        throw new Error(`Invalid year parameter. Must be one of: ${validYears.join(", ")}`);
+    }
+    // Year filter is required for meaningful comparison
+    if (!year || year === "all") {
+        // Default to current year if no year specified
+        year = new Date().getFullYear();
+        if (!validYears.includes(year)) {
+            year = validYears[0]; // Fallback to most recent year
+        }
     }
     try {
         // Dynamic rank selection based on time period
@@ -24,13 +37,10 @@ const getLeaderboardService = async (query) => {
             globalRankField = "l.monthly_global_rank";
             cityRankField = "l.monthly_city_rank";
         }
-        // Build filters
-        let whereClause = "WHERE 1=1";
+        // Build filters - year is now always required
+        let whereClause = `WHERE b.year = ${year}`;
         if (city && city !== "all") {
             whereClause += ` AND c.city_name = '${city}'`;
-        }
-        if (year && year !== "all") {
-            whereClause += ` AND b.year = ${year}`;
         }
         const leaderboardQuery = `
             SELECT
@@ -55,9 +65,13 @@ const getLeaderboardService = async (query) => {
                 ROUND((l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 100), 2) AS hard_completion,
                 ROUND((l.medium_solved::numeric / NULLIF(b.medium_assigned,0) * 100), 2) AS medium_completion,
                 ROUND((l.easy_solved::numeric / NULLIF(b.easy_assigned,0) * 100), 2) AS easy_completion,
-                -- Time-based rankings from database
-                ${globalRankField} AS global_rank,
-                ${cityRankField} AS city_rank,
+                -- All time-based rankings
+                l.weekly_global_rank,
+                l.weekly_city_rank,
+                l.monthly_global_rank,
+                l.monthly_city_rank,
+                l.alltime_global_rank,
+                l.alltime_city_rank,
                 l.last_calculated
             FROM "Student" s
             JOIN "Batch" b ON b.id = s.batch_id
@@ -85,8 +99,13 @@ const getLeaderboardService = async (query) => {
             medium_completion: Number(row.medium_completion) || 0,
             easy_completion: Number(row.easy_completion) || 0,
             score: Number(row.score) || 0,
-            global_rank: Number(row.global_rank),
-            city_rank: Number(row.city_rank),
+            // All time-based rankings
+            weekly_global_rank: Number(row.weekly_global_rank),
+            weekly_city_rank: Number(row.weekly_city_rank),
+            monthly_global_rank: Number(row.monthly_global_rank),
+            monthly_city_rank: Number(row.monthly_city_rank),
+            alltime_global_rank: Number(row.alltime_global_rank),
+            alltime_city_rank: Number(row.alltime_city_rank),
             last_calculated: row.last_calculated
         }));
         return normalized;
@@ -99,12 +118,25 @@ const getLeaderboardService = async (query) => {
 exports.getLeaderboardService = getLeaderboardService;
 const getLeaderboardWithPagination = async (filters, pagination, search) => {
     try {
-        const { type = "all", city = "all", year = null } = filters;
+        let { type = "all", city = "all", year = null } = filters;
         const { page = 1, limit = 20 } = pagination;
         // Validate type parameter
         const validTypes = ["all", "weekly", "monthly"];
         if (!validTypes.includes(type)) {
             throw new Error(`Invalid type parameter. Must be one of: ${validTypes.join(", ")}`);
+        }
+        // Validate year parameter - leaderboard is year-wise, so "all" is not valid
+        const validYears = [2024, 2025]; // Available batch years
+        if (year && year !== "all" && !validYears.includes(year)) {
+            throw new Error(`Invalid year parameter. Must be one of: ${validYears.join(", ")}`);
+        }
+        // Year filter is required for meaningful comparison
+        if (!year || year === "all") {
+            // Default to current year if no year specified
+            year = new Date().getFullYear();
+            if (!validYears.includes(year)) {
+                year = validYears[0]; // Fallback to most recent year
+            }
         }
         // Dynamic rank selection based on time period
         let globalRankField = "l.alltime_global_rank";
@@ -117,13 +149,10 @@ const getLeaderboardWithPagination = async (filters, pagination, search) => {
             globalRankField = "l.monthly_global_rank";
             cityRankField = "l.monthly_city_rank";
         }
-        // Build filters
-        let whereClause = "WHERE 1=1";
+        // Build filters - year is now always required
+        let whereClause = `WHERE b.year = ${year}`;
         if (city && city !== "all") {
             whereClause += ` AND c.city_name = '${city}'`;
-        }
-        if (year && year !== "all") {
-            whereClause += ` AND b.year = ${year}`;
         }
         if (search) {
             whereClause += ` AND (s.name ILIKE '%${search}%' OR s.username ILIKE '%${search}%')`;
@@ -163,9 +192,13 @@ const getLeaderboardWithPagination = async (filters, pagination, search) => {
                 ROUND((l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 100), 2) AS hard_completion,
                 ROUND((l.medium_solved::numeric / NULLIF(b.medium_assigned,0) * 100), 2) AS medium_completion,
                 ROUND((l.easy_solved::numeric / NULLIF(b.easy_assigned,0) * 100), 2) AS easy_completion,
-                -- Time-based rankings
-                ${globalRankField} AS global_rank,
-                ${cityRankField} AS city_rank,
+                -- All time-based rankings
+                l.weekly_global_rank,
+                l.weekly_city_rank,
+                l.monthly_global_rank,
+                l.monthly_city_rank,
+                l.alltime_global_rank,
+                l.alltime_city_rank,
                 l.last_calculated
             FROM "Student" s
             JOIN "Batch" b ON b.id = s.batch_id
@@ -193,8 +226,13 @@ const getLeaderboardWithPagination = async (filters, pagination, search) => {
             medium_completion: Number(row.medium_completion) || 0,
             easy_completion: Number(row.easy_completion) || 0,
             score: Number(row.score) || 0,
-            global_rank: Number(row.global_rank),
-            city_rank: Number(row.city_rank),
+            // All time-based rankings
+            weekly_global_rank: Number(row.weekly_global_rank),
+            weekly_city_rank: Number(row.weekly_city_rank),
+            monthly_global_rank: Number(row.monthly_global_rank),
+            monthly_city_rank: Number(row.monthly_city_rank),
+            alltime_global_rank: Number(row.alltime_global_rank),
+            alltime_city_rank: Number(row.alltime_city_rank),
             last_calculated: row.last_calculated
         }));
         return {

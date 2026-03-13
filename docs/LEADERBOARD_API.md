@@ -14,8 +14,9 @@ The Leaderboard API provides comprehensive ranking data for students based on th
    - Example: Bangalore rank #1 for 2024 means #1 among Bangalore 2024 batch students only
 
 3. **Student-Batch Relationship**: Each student belongs to exactly one batch, and each batch has one year
-   - Rankings are calculated per year, not across all years
+   - Rankings are calculated **per batch year only** - no cross-year comparisons
    - This ensures fair comparison within the same cohort
+   - `year: "all"` is not supported as it would be meaningless
 
 ## ⏰ Time-Based Filters
 
@@ -62,9 +63,15 @@ For each time period, the system maintains separate rankings:
 {
   "type": "all",           // optional: "all", "weekly", "monthly"
   "city": "all",           // optional: "all", "bangalore", "noida", "pune", "lucknow"
-  "year": 2024             // optional: 2024, 2025, 2026
+  "year": 2024             // optional: 2024, 2025 (defaults to student's batch year)
 }
 ```
+
+**Important Notes:**
+- `year` is **required** for meaningful comparison - leaderboard is year-wise by design
+- `year: "all"` is **not supported** - students are only compared within the same batch year
+- If no year is specified, defaults to the logged-in student's batch year
+- Invalid years will result in an error
 
 #### Query Parameters
 ```bash

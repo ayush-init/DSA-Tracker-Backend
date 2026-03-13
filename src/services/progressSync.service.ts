@@ -6,7 +6,7 @@ function extractSlug(url: string): string | undefined {
   return url.split("/problems/")[1]?.split("/")[0];
 }
 
-export async function syncOneStudent(studentId: number) {
+export async function syncOneStudent(studentId: number, forceSync: boolean = false) {
 
   // 1️⃣ Load student + already solved progress
   const student = await prisma.student.findUnique({
@@ -64,15 +64,18 @@ export async function syncOneStudent(studentId: number) {
 
     const lcData = await fetchLeetcodeData(student.leetcode_id);
 
+    const shouldSyncLeetCode = forceSync || lcData.totalSolved > student.lc_total_solved;
+    
     console.log("🔍 DEBUG: LeetCode Data:", {
       username: student.leetcode_id,
       totalSolved: lcData.totalSolved,
       studentTotalSolved: student.lc_total_solved,
       submissions: lcData.submissions.length,
-      shouldSync: lcData.totalSolved > student.lc_total_solved
+      forceSync: forceSync,
+      shouldSync: shouldSyncLeetCode
     });
 
-    if (lcData.totalSolved > student.lc_total_solved) {
+    if (shouldSyncLeetCode) {
 
       lcData.submissions
         .filter(sub => sub.statusDisplay === "Accepted")
@@ -112,15 +115,18 @@ export async function syncOneStudent(studentId: number) {
 
     const gfgData = await fetchGfgData(student.gfg_id);
 
+    const shouldSyncGFG = forceSync || gfgData.totalSolved > student.gfg_total_solved;
+    
     console.log("🔍 DEBUG: GFG Data:", {
       handle: student.gfg_id,
       totalSolved: gfgData.totalSolved,
       studentTotalSolved: student.gfg_total_solved,
       solvedSlugs: gfgData.solvedSlugs.length,
-      shouldSync: gfgData.totalSolved > student.gfg_total_solved
+      forceSync: forceSync,
+      shouldSync: shouldSyncGFG
     });
 
-    if (gfgData.totalSolved > student.gfg_total_solved) {
+    if (shouldSyncGFG) {
 
       gfgData.solvedSlugs.forEach(slug => {
 
@@ -161,6 +167,8 @@ export async function syncOneStudent(studentId: number) {
 
   return {
     message: "Sync completed",
-    newSolved: newProgressEntries.length
+    newSolved: newProgressEntries.length,
+    hadNewSolutions: newProgressEntries.length > 0,
+    forceSyncUsed: forceSync
   };
 }
