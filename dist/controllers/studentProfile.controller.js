@@ -22,7 +22,7 @@ exports.getStudentProfile = getStudentProfile;
 const getPublicStudentProfile = async (req, res) => {
     try {
         const { username } = req.params;
-        const profile = await (0, studentProfile_service_1.getPublicStudentProfileService)(username);
+        const profile = await (0, studentProfile_service_1.getPublicStudentProfileService)(Array.isArray(username) ? username[0] : username);
         res.json(profile);
     }
     catch (error) {

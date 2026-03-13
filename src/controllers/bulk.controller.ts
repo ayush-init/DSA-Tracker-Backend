@@ -19,7 +19,7 @@ export const bulkStudentUploadController = async (req: any, res: any) => {
             });
         }
 
-        const result = await bulkStudentUploadService(req.file.buffer, Number(batch_id));
+        const result = await bulkStudentUploadService(req.file.buffer, { batch_id: Number(batch_id) });
 
         res.status(201).json({
             message: "Students upload successful",

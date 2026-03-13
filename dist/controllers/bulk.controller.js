@@ -16,7 +16,7 @@ const bulkStudentUploadController = async (req, res) => {
                 message: "batch_id is required in request body"
             });
         }
-        const result = await (0, bulk_service_1.bulkStudentUploadService)(req.file.buffer, Number(batch_id));
+        const result = await (0, bulk_service_1.bulkStudentUploadService)(req.file.buffer, { batch_id: Number(batch_id) });
         res.status(201).json({
             message: "Students upload successful",
             ...(typeof result === 'object' && result !== null ? result : {})

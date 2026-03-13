@@ -14,7 +14,6 @@ const router = Router();
 router.use(verifyToken, isStudent, extractStudentInfo);
 
 
-
 // ===== TOPICS ROUTES =====
 router.get("/topics", getTopicsWithBatchProgress); // All topics with batch-specific classes, total questions per batch, and topic-specific solved question count (frontend will calculate progress percentage)
 router.get("/topics/:topicSlug", getTopicOverviewWithClassesSummary); // Topic overview with classes summary (name, duration, totalQuestions, solvedQuestions)

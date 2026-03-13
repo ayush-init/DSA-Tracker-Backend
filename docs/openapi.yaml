@@ -1397,6 +1397,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    
   /api/admin/questions:
     get:
       tags:
@@ -1596,7 +1597,7 @@ paths:
       tags:
         - Admin
       summary: Delete question
-      description: Delete question and all associated data
+      description: Delete existing question
       security:
         - bearerAuth: []
       parameters:
@@ -1625,6 +1626,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    
   /api/admin/questions/bulk-upload:
     post:
       tags:
@@ -2184,6 +2186,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    
   /api/admin/students/progress:
     post:
       tags:
@@ -2511,39 +2514,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-    delete:
-      tags:
-        - Admin
-      summary: Delete question
-      description: Delete existing question
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Question deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Question deleted successfully"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+    
   /api/admin/questions/bulk-upload:
     post:
       tags:
@@ -2801,17 +2772,18 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: topic
+        - name: batchSlug
           in: path
           required: true
           schema:
             type: string
-            example: "so-batch-2025"
-        - name: topic
+            example: "bangalore-so-batch-2025"
+        - name: topicSlug
           in: path
           required: true
           schema:
             type: string
+            example: "arrays-and-strings"
       requestBody:
         required: true
         content:
@@ -2863,7 +2835,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/admin/{batch}/topics/{topic}/classes/{class}:
+  /api/admin/{batchSlug}/topics/{topicSlug}/classes/{classSlug}:
     get:
       tags:
         - Admin
@@ -2872,24 +2844,31 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: topic
+        - name: batchSlug
           in: path
           required: true
           schema:
             type: string
-            example: "so-batch-2025"
-        - name: topic
+            example: "bangalore-so-batch-2025"
+        - name: topicSlug
           in: path
           required: true
           schema:
             type: string
+            example: "arrays-and-strings"
+        - name: classSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "intro-arrays"
       responses:
         '200':
           description: Class details retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Topic'
+                $ref: '#/components/schemas/ClassDetails'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2907,17 +2886,24 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: topic
+        - name: batchSlug
           in: path
           required: true
           schema:
             type: string
-            example: "so-batch-2025"
-        - name: topic
+            example: "bangalore-so-batch-2025"
+        - name: topicSlug
           in: path
           required: true
           schema:
             type: string
+            example: "arrays-and-strings"
+        - name: classSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "intro-arrays"
       requestBody:
         required: true
         content:
@@ -2946,7 +2932,7 @@ paths:
                     type: string
                     example: "Class updated successfully"
                   class:
-                    $ref: '#/components/schemas/Topic'
+                    $ref: '#/components/schemas/Class'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2966,17 +2952,24 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: topic
+        - name: batchSlug
           in: path
           required: true
           schema:
             type: string
-            example: "so-batch-2025"
-        - name: topic
+            example: "bangalore-so-batch-2025"
+        - name: topicSlug
           in: path
           required: true
           schema:
             type: string
+            example: "arrays-and-strings"
+        - name: classSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "intro-arrays"
       responses:
         '200':
           description: Class deleted successfully
@@ -2997,6 +2990,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    
   /api/admin/{batchSlug}/topics/{topicSlug}/classes/{classSlug}/questions:
     post:
       tags:
@@ -3006,17 +3000,18 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: topic
+        - name: batchSlug
           in: path
           required: true
           schema:
             type: string
-            example: "so-batch-2025"
-        - name: topic
+            example: "bangalore-so-batch-2025"
+        - name: topicSlug
           in: path
           required: true
           schema:
             type: string
+            example: "arrays-and-strings"
       requestBody:
         required: true
         content:
@@ -3074,17 +3069,18 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: topic
+        - name: batchSlug
           in: path
           required: true
           schema:
             type: string
-            example: "so-batch-2025"
-        - name: topic
+            example: "bangalore-so-batch-2025"
+        - name: topicSlug
           in: path
           required: true
           schema:
             type: string
+            example: "arrays-and-strings"
       responses:
         '200':
           description: Assigned questions retrieved successfully
@@ -3115,24 +3111,23 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: topic
+        - name: batchSlug
           in: path
           required: true
           schema:
             type: string
-            example: "so-batch-2025"
+          example: "bangalore-so-batch-2025"
         - name: topicSlug
           in: path
           required: true
           schema:
             type: string
-            example: "arrays-strings"
+          example: "arrays-strings"
         - name: classSlug
           in: path
           required: true
           schema:
             type: string
-            example: "intro-arrays"
           example: "intro-arrays"
         - name: questionId
           in: path
@@ -3155,6 +3150,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
   # SuperAdmin Endpoints
   /api/superadmin/cities:
     get:
@@ -3319,7 +3315,7 @@ paths:
       tags:
         - SuperAdmin
       summary: Delete city (SuperAdmin)
-      description: Delete city and all associated data
+      description: Delete existing city
       security:
         - bearerAuth: []
       parameters:
@@ -3348,6 +3344,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    
   /api/superadmin/batches:
     get:
       tags:
@@ -3514,39 +3511,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-    delete:
-      tags:
-        - SuperAdmin
-      summary: Delete batch (SuperAdmin)
-      description: Delete batch and all associated data
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Batch deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Batch deleted successfully"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+    
   /api/superadmin/admins:
     post:
       tags:
@@ -3784,10 +3749,11 @@ paths:
                         example: "TEACHER"
                       batch_id:
                         type: integer
-                        example: 1
+                        example: 2
                       city_id:
                         type: integer
                         example: 1
+                        description: "City ID automatically fetched from batch"
                       updated_at:
                         type: string
                         format: date-time
@@ -3838,6 +3804,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    
   /api/superadmin/stats:
     get:
       tags:
@@ -4009,39 +3976,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 
   /api/superadmin/cities/{id}:
-    delete:
-      tags:
-        - SuperAdmin
-      summary: Delete city (SuperAdmin)
-      description: Delete existing city
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: City deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "City deleted successfully"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+    
   /api/superadmin/batches/{id}:
     patch:
       tags:
@@ -4065,10 +4000,10 @@ paths:
               properties:
                 batch_name:
                   type: string
-                  example: "Updated Batch"
+                  example: "Updated Batch Name"
                 year:
                   type: integer
-                  example: 2025
+                  example: 2026
                 city_id:
                   type: integer
                   example: 1
@@ -4131,6 +4066,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    
   /api/superadmin/stats:
     get:
       tags:
