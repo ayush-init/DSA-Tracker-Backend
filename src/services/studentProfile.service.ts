@@ -22,6 +22,16 @@ export const getStudentProfileService = async (studentId: number) => {
             throw new Error("Student not found");
         }
 
+        // Get batch question counts for all levels
+        const batchQuestionCounts = await prisma.batch.findUnique({
+            where: { id: student.batch_id! },
+            select: {
+                easy_assigned: true,
+                medium_assigned: true,
+                hard_assigned: true
+            }
+        });
+
         const leaderboard = student.leaderboards;
 
         // 2️⃣ Get recent activity
@@ -58,6 +68,7 @@ export const getStudentProfileService = async (studentId: number) => {
                 enrollmentId: student.enrollment_id,
                 city: student.city?.city_name || null,
                 batch: student.batch?.batch_name || null,
+                year: student.batch?.year || null,
                 github: student.github,
                 linkedin: student.linkedin,
                 leetcode: student.leetcode_id,
@@ -65,7 +76,20 @@ export const getStudentProfileService = async (studentId: number) => {
             },
 
             codingStats: {
-                totalSolved: student._count.progress
+                totalSolved: student._count.progress,
+                totalAssigned: (batchQuestionCounts?.easy_assigned || 0) + (batchQuestionCounts?.medium_assigned || 0) + (batchQuestionCounts?.hard_assigned || 0),
+                easy: {
+                    assigned: batchQuestionCounts?.easy_assigned || 0,
+                    solved: leaderboard?.easy_solved || 0
+                },
+                medium: {
+                    assigned: batchQuestionCounts?.medium_assigned || 0,
+                    solved: leaderboard?.medium_solved || 0
+                },
+                hard: {
+                    assigned: batchQuestionCounts?.hard_assigned || 0,
+                    solved: leaderboard?.hard_solved || 0
+                }
             },
 
             streak: {
@@ -75,11 +99,7 @@ export const getStudentProfileService = async (studentId: number) => {
 
             leaderboard: {
                 globalRank: leaderboard?.alltime_global_rank || 0,
-                cityRank: leaderboard?.alltime_city_rank || 0,
-                totalScore:
-                    (leaderboard?.hard_solved || 0) * 3 +
-                    (leaderboard?.medium_solved || 0) * 2 +
-                    (leaderboard?.easy_solved || 0) * 1
+                cityRank: leaderboard?.alltime_city_rank || 0
             },
 
             heatmap: heatmap.map((h) => ({
@@ -125,6 +145,16 @@ export const getPublicStudentProfileService = async (username: string) => {
 
     const studentId = student.id;
 
+    // Get batch question counts for all levels
+    const batchQuestionCounts = await prisma.batch.findUnique({
+        where: { id: student.batch_id! },
+        select: {
+            easy_assigned: true,
+            medium_assigned: true,
+            hard_assigned: true
+        }
+    });
+
     const recentActivity = await prisma.studentProgress.findMany({
         where: { student_id: studentId },
         include: {
@@ -157,6 +187,7 @@ export const getPublicStudentProfileService = async (username: string) => {
             username: student.username,
             city: student.city?.city_name || null,
             batch: student.batch?.batch_name || null,
+            year: student.batch?.year || null,
             github: student.github,
             linkedin: student.linkedin,
             leetcode: student.leetcode_id,
@@ -164,7 +195,20 @@ export const getPublicStudentProfileService = async (username: string) => {
         },
 
         codingStats: {
-            totalSolved: student._count.progress
+            totalSolved: student._count.progress,
+            totalAssigned: (batchQuestionCounts?.easy_assigned || 0) + (batchQuestionCounts?.medium_assigned || 0) + (batchQuestionCounts?.hard_assigned || 0),
+            easy: {
+                assigned: batchQuestionCounts?.easy_assigned || 0,
+                solved: leaderboard?.easy_solved || 0
+            },
+            medium: {
+                assigned: batchQuestionCounts?.medium_assigned || 0,
+                solved: leaderboard?.medium_solved || 0
+            },
+            hard: {
+                assigned: batchQuestionCounts?.hard_assigned || 0,
+                solved: leaderboard?.hard_solved || 0
+            }
         },
 
         streak: {
@@ -174,11 +218,7 @@ export const getPublicStudentProfileService = async (username: string) => {
 
         leaderboard: {
             globalRank: leaderboard?.alltime_global_rank || 0,
-            cityRank: leaderboard?.alltime_city_rank || 0,
-            totalScore:
-                (leaderboard?.hard_solved || 0) * 3 +
-                (leaderboard?.medium_solved || 0) * 2 +
-                (leaderboard?.easy_solved || 0) * 1
+            cityRank: leaderboard?.alltime_city_rank || 0
         },
 
         heatmap: heatmap.map((h) => ({
