@@ -10,7 +10,7 @@ import studentRoutes from "./routes/student.routes";
 import adminRoutes from "./routes/admin.routes";
 import superadminRoutes from './routes/superadmin.routes';
 import { startSyncJob } from './jobs/sync.job';
-
+import s3Routes from './routes/s3.routes';
 dotenv.config();
 
 // Swagger UI Integration
@@ -26,6 +26,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// S3 Routes (for testing)
+app.use('/api/s3', s3Routes);
 
 // Routes
 app.use('/api/auth', authRoutes);

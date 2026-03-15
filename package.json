@@ -25,6 +25,8 @@
   },
   "homepage": "https://github.com/dhruv608/DSA-Tracker-Backend#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1009.0",
+    "@aws-sdk/s3-request-presigner": "^3.1009.0",
     "@prisma/client": "^6.8.0",
     "@prisma/extension-accelerate": "^3.0.1",
     "@types/nodemailer": "^7.0.11",

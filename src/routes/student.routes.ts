@@ -7,7 +7,8 @@ import { getClassDetailsWithFullQuestions } from "../controllers/class.controlle
 import { getAllQuestionsWithFilters } from "../controllers/questionVisibility.controller";
 import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
 import { getStudentProfile, getPublicStudentProfile } from "../controllers/studentProfile.controller";
-
+import { uploadSingle } from '../middlewares/uploadphoto.middleware';
+import { uploadProfileImage, deleteProfileImage, getProfileImage } from '../controllers/profileImage.controller';
 const router = Router();
 
 // Public route - no authentication required
@@ -29,6 +30,10 @@ router.get("/addedQuestions", getAllQuestionsWithFilters); // All questions with
 // ===== LEADERBOARD ROUTES =====
 router.post("/leaderboard", getStudentLeaderboard); // Single student leaderboard with top 10 and personal rank
 
+// ===== PROFILE IMAGE ROUTES =====
+router.post("/profile-image", uploadSingle, uploadProfileImage);  // Upload/Update profile image
+router.delete("/profile-image", deleteProfileImage);              // Delete profile image
+router.get("/profile-image", getProfileImage);                   // Get profile image URL
 router.get("/profile", getStudentProfile); // Complete student profile with all sections
 
 
