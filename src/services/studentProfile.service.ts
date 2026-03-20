@@ -6,7 +6,18 @@ export const getStudentProfileService = async (studentId: number) => {
         // 1️⃣ Get student basic info + leaderboard
         const student = await prisma.student.findUnique({
             where: { id: studentId },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+                enrollment_id: true,
+                github: true,
+                linkedin: true,
+                leetcode_id: true,
+                gfg_id: true,
+                profile_image_url: true,
+                batch_id: true,
                 city: true,
                 batch: true,
                 leaderboards: true,
@@ -72,7 +83,8 @@ export const getStudentProfileService = async (studentId: number) => {
                 github: student.github,
                 linkedin: student.linkedin,
                 leetcode: student.leetcode_id,
-                gfg: student.gfg_id
+                gfg: student.gfg_id,
+                profileImageUrl: student.profile_image_url
             },
 
             codingStats: {
@@ -127,7 +139,16 @@ export const getPublicStudentProfileService = async (username: string) => {
 
     const student = await prisma.student.findUnique({
         where: { username },
-        include: {
+        select: {
+            id: true,
+            name: true,
+            username: true,
+            github: true,
+            linkedin: true,
+            leetcode_id: true,
+            gfg_id: true,
+            profile_image_url: true,
+            batch_id: true,
             city: true,
             batch: true,
             leaderboards: true,
@@ -191,7 +212,8 @@ export const getPublicStudentProfileService = async (username: string) => {
             github: student.github,
             linkedin: student.linkedin,
             leetcode: student.leetcode_id,
-            gfg: student.gfg_id
+            gfg: student.gfg_id,
+            profileImageUrl: student.profile_image_url
         },
 
         codingStats: {
