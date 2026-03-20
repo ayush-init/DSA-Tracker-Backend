@@ -6,8 +6,10 @@
 2. [Student APIs](#student-apis)
 3. [Admin APIs](#admin-apis)
 4. [SuperAdmin APIs](#superadmin-apis)
-5. [Common Response Formats](#common-response-formats)
-6. [Error Handling](#error-handling)
+5. [Health Check](#health-check)
+6. [S3 APIs](#s3-apis)
+7. [Common Response Formats](#common-response-formats)
+8. [Error Handling](#error-handling)
 
 ---
 
@@ -134,15 +136,100 @@ All authentication endpoints are **public** and don't require authentication tok
 }
 ```
 
-#### 5. Admin Logout
-**Endpoint:** `POST /api/auth/admin/logout`
+#### 5. Refresh Token
+**Endpoint:** `POST /api/auth/refresh-token`
 
-**Headers:** `Authorization: Bearer <access_token>`
+**Description:** Refresh access token using refresh token.
+
+**Request Body:**
+```json
+{
+  "refreshToken": "string"
+}
+```
 
 **Response:**
 ```json
 {
-  "message": "Logout successful"
+  "message": "Token refreshed successfully",
+  "tokens": {
+    "accessToken": "new_jwt_token_here",
+    "refreshToken": "new_refresh_token_here"
+  }
+}
+```
+
+#### 6. Google OAuth Login
+**Endpoint:** `POST /api/auth/google-login`
+
+**Description:** Login using Google OAuth.
+
+**Request Body:**
+```json
+{
+  "idToken": "google_id_token_here"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Google login successful",
+  "user": {
+    "id": 1,
+    "email": "user@gmail.com",
+    "username": "user123",
+    "role": "STUDENT",
+    "userType": "student",
+    "batchId": 1,
+    "batchSlug": "batch-2024",
+    "cityId": 1
+  },
+  "tokens": {
+    "accessToken": "jwt_token_here",
+    "refreshToken": "refresh_token_here"
+  }
+}
+```
+
+#### 7. Forgot Password
+**Endpoint:** `POST /api/auth/forgot-password`
+
+**Description:** Send OTP to email for password reset.
+
+**Request Body:**
+```json
+{
+  "email": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "OTP sent to your email successfully",
+  "email": "user@example.com"
+}
+```
+
+#### 8. Reset Password
+**Endpoint:** `POST /api/auth/reset-password`
+
+**Description:** Reset password using OTP verification.
+
+**Request Body:**
+```json
+{
+  "email": "string",
+  "otp": "string",
+  "newPassword": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Password reset successfully"
 }
 ```
 
@@ -167,19 +254,11 @@ All endpoints require **authentication + STUDENT role**.
       "id": 1,
       "topic_name": "Arrays",
       "slug": "arrays",
-      "description": "Array data structures and algorithms",
-      "classes": [
-        {
-          "id": 1,
-          "class_name": "Basic Arrays",
-          "slug": "basic-arrays",
-          "duration": "2 hours",
-          "totalQuestions": 10,
-          "solvedQuestions": 7
-        }
-      ],
-      "totalQuestions": 25,
-      "solvedQuestions": 15
+      "batchSpecificData": {
+        "totalClasses": 5,
+        "totalQuestions": 25,
+        "solvedQuestions": 15
+      }
     }
   ]
 }
@@ -191,24 +270,26 @@ All endpoints require **authentication + STUDENT role**.
 **Response:**
 ```json
 {
-  "topic": {
-    "id": 1,
-    "topic_name": "Arrays",
-    "slug": "arrays",
-    "description": "Array data structures and algorithms",
-    "totalQuestions": 25,
-    "solvedQuestions": 15
-  },
+  "id": 1,
+  "topic_name": "Arrays",
+  "slug": "arrays",
+  "description": "Array data structures and algorithms",
   "classes": [
     {
       "id": 1,
       "class_name": "Basic Arrays",
       "slug": "basic-arrays",
-      "duration": "2 hours",
+      "duration_minutes": 120,
+      "description": "Introduction to arrays",
       "totalQuestions": 10,
       "solvedQuestions": 7
     }
-  ]
+  ],
+  "overallProgress": {
+    "totalClasses": 5,
+    "totalQuestions": 25,
+    "solvedQuestions": 15
+  }
 }
 ```
 
@@ -218,30 +299,38 @@ All endpoints require **authentication + STUDENT role**.
 **Response:**
 ```json
 {
-  "class": {
+  "id": 1,
+  "class_name": "Basic Arrays",
+  "slug": "basic-arrays",
+  "description": "Introduction to arrays",
+  "duration_minutes": 120,
+  "pdf_url": "https://example.com/class.pdf",
+  "class_date": "2024-01-01T10:00:00.000Z",
+  "created_at": "2024-01-01T09:00:00.000Z",
+  "topic": {
     "id": 1,
-    "class_name": "Basic Arrays",
-    "slug": "basic-arrays",
-    "duration": "2 hours",
-    "description": "Introduction to arrays"
+    "topic_name": "Arrays",
+    "slug": "arrays"
   },
+  "totalQuestions": 10,
+  "solvedQuestions": 7,
   "questions": [
     {
       "id": 1,
-      "question_name": "Two Sum",
-      "level": "EASY",
+      "questionName": "Two Sum",
+      "questionLink": "https://leetcode.com/problems/two-sum/",
       "platform": "LEETCODE",
-      "platform_question_id": "1",
-      "link": "https://leetcode.com/problems/two-sum/",
+      "level": "EASY",
+      "type": "ARRAY",
+      "topic": {
+        "id": 1,
+        "topic_name": "Arrays",
+        "slug": "arrays"
+      },
       "isSolved": true,
-      "solvedAt": "2024-01-01T10:00:00.000Z"
+      "syncAt": "2024-01-01T10:00:00.000Z"
     }
-  ],
-  "progress": {
-    "totalQuestions": 10,
-    "solvedQuestions": 7,
-    "completionPercentage": 70
-  }
+  ]
 }
 ```
 
@@ -251,9 +340,11 @@ All endpoints require **authentication + STUDENT role**.
 **Description:** Get all questions with filtering options and solved status.
 
 **Query Parameters (All Optional):**
+- `search`: Search by question name or topic
 - `level`: Filter by difficulty (EASY, MEDIUM, HARD)
-- `platform`: Filter by platform (LEETCODE, GFG, CODESTUDIO)
-- `topic`: Filter by topic name
+- `platform`: Filter by platform (LEETCODE, GFG, OTHER, INTERVIEWBIT)
+- `topic`: Filter by topic slug
+- `type`: Filter by type (HOMEWORK, CLASSWORK)
 - `solved`: Filter by solved status (true/false)
 - `page`: Page number (default: 1)
 - `limit`: Items per page (default: 20)
@@ -267,24 +358,41 @@ All endpoints require **authentication + STUDENT role**.
     {
       "id": 1,
       "question_name": "Two Sum",
-      "level": "EASY",
+      "question_link": "https://leetcode.com/problems/two-sum/",
       "platform": "LEETCODE",
-      "platform_question_id": "1",
-      "link": "https://leetcode.com/problems/two-sum/",
+      "level": "EASY",
+      "type": "HOMEWORK",
       "topic": {
         "id": 1,
         "topic_name": "Arrays",
         "slug": "arrays"
       },
       "isSolved": true,
-      "solvedAt": "2024-01-01T10:00:00.000Z"
+      "syncAt": "2024-01-01T10:00:00.000Z",
+      "created_at": "2024-01-01T09:00:00.000Z"
     }
   ],
   "pagination": {
     "page": 1,
     "limit": 10,
-    "total": 50,
+    "totalQuestions": 50,
     "totalPages": 5
+  },
+  "filters": {
+    "topics": [
+      {
+        "id": 1,
+        "topic_name": "Arrays",
+        "slug": "arrays"
+      }
+    ],
+    "levels": ["EASY", "MEDIUM", "HARD"],
+    "platforms": ["GFG", "INTERVIEWBIT", "LEETCODE", "OTHER"],
+    "types": ["CLASSWORK", "HOMEWORK"]
+  },
+  "stats": {
+    "total": 50,
+    "solved": 25
   }
 }
 ```
@@ -347,68 +455,6 @@ All endpoints require **authentication + STUDENT role**.
 }
 ```
 
-#### 6. Get Student Profile
-**Endpoint:** `GET /api/students/profile`
-
-**Description:** Get complete student profile with all sections.
-
-**Response:**
-```json
-{
-  "student": {
-    "name": "John Doe",
-    "username": "johndoe",
-    "email": "john@example.com",
-    "enrollmentId": "ENR123",
-    "city": "New York",
-    "batch": "Batch 2024",
-    "year": 2024,
-    "github": "johndoe",
-    "linkedin": "https://linkedin.com/in/johndoe",
-    "leetcode": "john123",
-    "gfg": "john456",
-    "profileImageUrl": "https://bucket.s3.region.amazonaws.com/profile-images/1234567890-123456789.jpg"
-  },
-  "codingStats": {
-    "totalSolved": 243,
-    "totalAssigned": 741,
-    "easy": {
-      "assigned": 215,
-      "solved": 118
-    },
-    "medium": {
-      "assigned": 388,
-      "solved": 104
-    },
-    "hard": {
-      "assigned": 138,
-      "solved": 21
-    }
-  },
-  "streak": {
-    "currentStreak": 1,
-    "maxStreak": 5
-  },
-  "leaderboard": {
-    "globalRank": 15,
-    "cityRank": 3
-  },
-  "heatmap": [
-    {
-      "date": "2024-01-01T00:00:00.000Z",
-      "count": 5
-    }
-  ],
-  "recentActivity": [
-    {
-      "problemTitle": "Two Sum",
-      "difficulty": "EASY",
-      "solvedAt": "2024-01-01T10:00:00.000Z"
-    }
-  ]
-}
-```
-
 #### 7. Get Public Student Profile
 **Endpoint:** `GET /api/students/profile/:username`
 
@@ -423,14 +469,11 @@ All endpoints require **authentication + STUDENT role**.
   "student": {
     "name": "John Doe",
     "username": "johndoe",
-    "city": "New York",
     "batch": "Batch 2024",
     "year": 2024,
-    "github": "johndoe",
-    "linkedin": "https://linkedin.com/in/johndoe",
+    "city": "New York",
     "leetcode": "john123",
-    "gfg": "john456",
-    "profileImageUrl": "https://bucket.s3.region.amazonaws.com/profile-images/1234567890-123456789.jpg"
+    "gfg": "john456"
   },
   "codingStats": {
     "totalSolved": 243,
@@ -469,61 +512,6 @@ All endpoints require **authentication + STUDENT role**.
       "solvedAt": "2024-01-01T10:00:00.000Z"
     }
   ]
-}
-```
-
-#### 8. Upload Profile Image
-**Endpoint:** `POST /api/students/profile-image`
-
-**Description:** Upload or update student profile image.
-
-**Headers:** `Authorization: Bearer <access_token>`
-
-**Request:** `multipart/form-data`
-- `file`: Image file (JPEG, JPG, PNG, max 5MB)
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Profile image uploaded successfully",
-  "data": {
-    "profileImageUrl": "https://bucket.s3.region.amazonaws.com/profile-images/1234567890-123456789.jpg",
-    "fileName": "profile.jpg",
-    "fileSize": 1024000
-  }
-}
-```
-
-#### 9. Delete Profile Image
-**Endpoint:** `DELETE /api/students/profile-image`
-
-**Description:** Delete student profile image.
-
-**Headers:** `Authorization: Bearer <access_token>`
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Profile image deleted successfully"
-}
-```
-
-#### 10. Get Profile Image
-**Endpoint:** `GET /api/students/profile-image`
-
-**Description:** Get student profile image URL.
-
-**Headers:** `Authorization: Bearer <access_token>`
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "profileImageUrl": "https://bucket.s3.region.amazonaws.com/profile-images/1234567890-123456789.jpg"
-  }
 }
 ```
 
@@ -1254,9 +1242,10 @@ All routes below require `batchSlug` parameter and valid batch context.
 ```json
 {
   "class_name": "Advanced Arrays",
-  "slug": "advanced-arrays",
-  "duration": "3 hours",
-  "description": "Advanced array algorithms"
+  "description": "Advanced array algorithms",
+  "pdf_url": "https://example.com/class-material.pdf",
+  "duration_minutes": 180,
+  "class_date": "2024-01-15T10:00:00.000Z"
 }
 ```
 
@@ -1268,9 +1257,12 @@ All routes below require `batchSlug` parameter and valid batch context.
     "id": 2,
     "class_name": "Advanced Arrays",
     "slug": "advanced-arrays",
-    "duration": "3 hours",
     "description": "Advanced array algorithms",
+    "pdf_url": "https://example.com/class-material.pdf",
+    "duration_minutes": 180,
+    "class_date": "2024-01-15T10:00:00.000Z",
     "topic_id": 1,
+    "batch_id": 1,
     "created_at": "2024-01-01T12:00:00.000Z"
   }
 }
@@ -1289,21 +1281,17 @@ All routes below require `batchSlug` parameter and valid batch context.
 **Response:**
 ```json
 {
-  "class": {
-    "id": 1,
-    "class_name": "Basic Arrays",
-    "slug": "basic-arrays",
-    "duration": "2 hours",
-    "description": "Introduction to arrays",
-    "topic": {
-      "id": 1,
-      "topic_name": "Arrays",
-      "slug": "arrays"
-    },
-    "assigned_questions": 10,
-    "total_students": 150,
-    "created_at": "2024-01-01T00:00:00.000Z"
-  }
+  "id": 1,
+  "class_name": "Basic Arrays",
+  "slug": "basic-arrays",
+  "description": "Introduction to arrays",
+  "pdf_url": "https://example.com/class.pdf",
+  "duration_minutes": 120,
+  "class_date": "2024-01-01T10:00:00.000Z",
+  "created_at": "2024-01-01T09:00:00.000Z",
+  "topic_id": 1,
+  "batch_id": 1,
+  "questionCount": 10
 }
 ```
 
@@ -1321,7 +1309,7 @@ All routes below require `batchSlug` parameter and valid batch context.
 ```json
 {
   "class_name": "Updated Basic Arrays",
-  "duration": "2.5 hours",
+  "duration_minutes": 150,
   "description": "Updated introduction to arrays"
 }
 ```
@@ -1334,9 +1322,13 @@ All routes below require `batchSlug` parameter and valid batch context.
     "id": 1,
     "class_name": "Updated Basic Arrays",
     "slug": "basic-arrays",
-    "duration": "2.5 hours",
     "description": "Updated introduction to arrays",
+    "duration_minutes": 150,
+    "pdf_url": "https://example.com/class.pdf",
+    "class_date": "2024-01-01T10:00:00.000Z",
     "topic_id": 1,
+    "batch_id": 1,
+    "created_at": "2024-01-01T09:00:00.000Z",
     "updated_at": "2024-01-01T12:00:00.000Z"
   }
 }
@@ -1374,12 +1366,8 @@ All routes below require `batchSlug` parameter and valid batch context.
 **Response:**
 ```json
 {
-  "message": "Questions assigned to class successfully",
-  "results": {
-    "assigned_count": 5,
-    "already_assigned": 0,
-    "not_found": 0
-  }
+  "message": "Questions assigned successfully",
+  "assignedCount": 5
 }
 ```
 
@@ -1400,14 +1388,15 @@ All routes below require `batchSlug` parameter and valid batch context.
 **Response:**
 ```json
 {
-  "questions": [
+  "message": "Assigned questions retrieved successfully",
+  "data": [
     {
       "id": 1,
       "question_name": "Two Sum",
-      "level": "EASY",
+      "question_link": "https://leetcode.com/problems/two-sum/",
       "platform": "LEETCODE",
-      "platform_question_id": "1",
-      "link": "https://leetcode.com/problems/two-sum/",
+      "level": "EASY",
+      "type": "HOMEWORK",
       "topic": {
         "id": 1,
         "topic_name": "Arrays",
@@ -1415,31 +1404,60 @@ All routes below require `batchSlug` parameter and valid batch context.
       },
       "assigned_at": "2024-01-01T12:00:00.000Z"
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 10,
-    "totalPages": 1
-  }
+  ]
 }
 ```
 
-##### 22.9 Remove Question from Class (Teacher+)
-**Endpoint:** `DELETE /api/admin/:batchSlug/topics/:topicSlug/classes/:classSlug/questions/:questionId`
+#### 23. Test External Platform Sync
 
-**Description:** Remove a question from a class (Teacher and SuperAdmin only).
+##### 23.1 Test LeetCode Sync
+**Endpoint:** `GET /api/admin/test/leetcode/:username`
+
+**Description:** Test LeetCode data synchronization for a username.
 
 **Path Parameters:**
-- `batchSlug`: Batch slug
-- `topicSlug`: Topic slug
-- `classSlug`: Class slug
-- `questionId`: Question ID
+- `username`: LeetCode username to test
 
 **Response:**
 ```json
 {
-  "message": "Question removed from class successfully"
+  "totalSolved": 245,
+  "easySolved": 118,
+  "mediumSolved": 104,
+  "hardSolved": 21,
+  "recentSubmissions": [
+    {
+      "title": "Two Sum",
+      "difficulty": "Easy",
+      "timestamp": "2024-01-01T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+##### 23.2 Test GFG Sync
+**Endpoint:** `GET /api/admin/test/gfg/:username`
+
+**Description:** Test GeeksforGeeks data synchronization for a username.
+
+**Path Parameters:**
+- `username`: GFG username to test
+
+**Response:**
+```json
+{
+  "totalSolved": 189,
+  "schoolProblemsSolved": 95,
+  "basicProblemsSolved": 72,
+  "mediumProblemsSolved": 22,
+  "hardProblemsSolved": 0,
+  "recentSubmissions": [
+    {
+      "problemName": "Array Reverse",
+      "difficulty": "Basic",
+      "timestamp": "2024-01-01T10:00:00.000Z"
+    }
+  ]
 }
 ```
 
@@ -1776,6 +1794,62 @@ All SuperAdmin endpoints require **authentication + SUPERADMIN role**.
 
 ---
 
+## Health Check
+
+#### System Health
+**Endpoint:** `GET /health`
+
+**Description:** Check system health and status.
+
+**Response:**
+```json
+{
+  "status": "OK",
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
+---
+
+## S3 APIs
+
+### Base URL: `/api/s3`
+
+All S3 endpoints are **public** and used for file management operations.
+
+#### 1. Test S3 Connection
+**Endpoint:** `GET /api/s3/test`
+
+**Description:** Test S3 configuration and connectivity.
+
+**Response:**
+```json
+{
+  "message": "S3 connection successful",
+  "bucket": "your-bucket-name",
+  "region": "us-east-1"
+}
+```
+
+#### 2. Upload Test File
+**Endpoint:** `POST /api/s3/upload`
+
+**Description:** Upload a test file to S3 (for testing purposes).
+
+**Request:** `multipart/form-data`
+- `file`: File to upload
+
+**Response:**
+```json
+{
+  "message": "File uploaded successfully",
+  "fileUrl": "https://s3.amazonaws.com/bucket/path/to/file",
+  "fileName": "test-file.jpg"
+}
+```
+
+---
+
 ## Common Response Formats
 
 ### Success Response
@@ -1927,6 +2001,53 @@ curl -X POST http://localhost:5000/api/auth/student/login \
 curl -X GET http://localhost:5000/api/students/profile \
   -H "Authorization: Bearer <access_token>"
 ```
+
+---
+
+## Additional Information
+
+### Interactive API Documentation
+
+The API provides an interactive Swagger UI for testing all endpoints:
+
+**Swagger UI:** `GET /api-docs`
+
+Visit `http://localhost:5000/api-docs` in your browser to access the interactive API documentation where you can test all endpoints directly.
+
+### CSV Upload Interface
+
+A web interface is available for CSV upload operations:
+
+**CSV UI:** `GET /csv-ui`
+
+Visit `http://localhost:5000/csv-ui` to access the CSV upload interface for bulk operations.
+
+### Base URL
+
+All API endpoints are prefixed with the base URL:
+- **Development:** `http://localhost:5000`
+- **Production:** `https://your-domain.com`
+
+### Rate Limiting
+
+The API implements rate limiting on sensitive endpoints:
+- **Authentication endpoints:** Limited to prevent brute force attacks
+- **Password reset endpoints:** Limited with OTP restrictions
+- **General API usage:** Standard rate limiting applies
+
+### File Upload Limits
+
+- **Maximum file size:** 10MB for CSV uploads
+- **Supported image formats:** JPEG, PNG, GIF for profile images
+- **Supported CSV formats:** UTF-8 encoded CSV files
+
+### CORS Configuration
+
+The API is configured to accept requests from:
+- `http://localhost:5000`
+- `http://127.0.0.1:5500`
+- `http://127.0.0.1:5501`
+- `http://localhost:5501`
 
 ---
 
