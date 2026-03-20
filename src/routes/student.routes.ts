@@ -9,6 +9,8 @@ import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
 import { getStudentProfile, getPublicStudentProfile } from "../controllers/studentProfile.controller";
 import { uploadSingle } from '../middlewares/uploadphoto.middleware';
 import { uploadProfileImage, deleteProfileImage, getProfileImage } from '../controllers/profileImage.controller';
+
+
 const router = Router();
 
 // Public route - no authentication required

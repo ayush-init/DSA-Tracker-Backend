@@ -83,6 +83,70 @@ paths:
                     format: date-time
                     example: "2024-01-01T00:00:00.000Z"
 
+  # S3 Routes
+  /api/s3/test:
+    get:
+      tags:
+        - System
+      summary: Test S3 connection
+      description: Test the S3 configuration and connection
+      responses:
+        '200':
+          description: S3 connection successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "S3 connection successful"
+                  bucket:
+                    type: string
+                    example: "dsa-tracker-bucket"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/s3/upload:
+    post:
+      tags:
+        - System
+      summary: Upload test file to S3
+      description: Upload a test file to S3 to verify upload functionality
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "File uploaded successfully"
+                  url:
+                    type: string
+                    example: "https://s3.amazonaws.com/bucket/test-file.jpg"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   # Authentication Routes
   /api/auth/student/register:
     post:
@@ -792,6 +856,91 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/students/profile-image:
+    post:
+      tags:
+        - Students
+      summary: Upload profile image
+      description: Upload or update student profile image
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Profile image file (JPEG, PNG, WebP)
+      responses:
+        '200':
+          description: Profile image uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Profile image uploaded successfully"
+                  imageUrl:
+                    type: string
+                    example: "https://s3.amazonaws.com/bucket/profile-images/student123.jpg"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Students
+      summary: Delete profile image
+      description: Delete student profile image
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile image deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Profile image deleted successfully"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Students
+      summary: Get profile image URL
+      description: Get the URL of the student's profile image
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile image URL retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imageUrl:
+                    type: string
+                    example: "https://s3.amazonaws.com/bucket/profile-images/student123.jpg"
+                  hasImage:
+                    type: boolean
+                    example: true
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   # Admin Routes
   /api/admin/cities:
     get:
@@ -1247,6 +1396,311 @@ paths:
         - Questions
       summary: Bulk upload questions
       description: Upload multiple questions from a CSV file (Teacher or above only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file containing questions
+      responses:
+        '201':
+          description: Questions uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Questions uploaded successfully"
+                  count:
+                    type: integer
+                    example: 50
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/batches:
+    get:
+      tags:
+        - Admin
+        - Batches
+      summary: Get all batches (Admin)
+      description: Get all batches with optional city and year filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          description: Filter by city name
+          schema:
+            type: string
+            example: "mumbai"
+        - name: year
+          in: query
+          description: Filter by batch year
+          schema:
+            type: integer
+            example: 2024
+      responses:
+        '200':
+          description: Batches retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Batch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/questions:
+    get:
+      tags:
+        - Admin
+        - Questions
+      summary: Get all questions (Admin)
+      description: Get all questions with optional filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: topicSlug
+          in: query
+          description: Filter by topic slug
+          schema:
+            type: string
+            example: "arrays-and-strings"
+        - name: level
+          in: query
+          description: Filter by difficulty level
+          schema:
+            type: string
+            enum: [EASY, MEDIUM, HARD]
+            example: "MEDIUM"
+        - name: platform
+          in: query
+          description: Filter by platform
+          schema:
+            type: string
+            enum: [LEETCODE, GFG, OTHER, INTERVIEWBIT]
+            example: "LEETCODE"
+        - name: type
+          in: query
+          description: Filter by question type
+          schema:
+            type: string
+            enum: [HOMEWORK, CLASSWORK]
+            example: "HOMEWORK"
+      responses:
+        '200':
+          description: Questions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Question'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Admin
+        - Questions
+      summary: Create a new question (Teacher or above)
+      description: Create a new question
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question_name
+                - platform
+                - level
+                - type
+                - topic_id
+              properties:
+                question_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: "Two Sum"
+                platform:
+                  type: string
+                  enum: [LEETCODE, GFG, OTHER, INTERVIEWBIT]
+                  example: "LEETCODE"
+                level:
+                  type: string
+                  enum: [EASY, MEDIUM, HARD]
+                  example: "MEDIUM"
+                type:
+                  type: string
+                  enum: [HOMEWORK, CLASSWORK]
+                  example: "HOMEWORK"
+                topic_id:
+                  type: integer
+                  example: 1
+                question_url:
+                  type: string
+                  format: uri
+                  example: "https://leetcode.com/problems/two-sum/"
+                solution_url:
+                  type: string
+                  format: uri
+                  example: "https://leetcode.com/problems/two-sum/solution/"
+      responses:
+        '201':
+          description: Question created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Question created successfully"
+                  question:
+                    $ref: '#/components/schemas/Question'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/questions/{id}:
+    patch:
+      tags:
+        - Admin
+        - Questions
+      summary: Update a question (Teacher or above)
+      description: Update an existing question
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Question ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: "Updated Question Name"
+                platform:
+                  type: string
+                  enum: [LEETCODE, GFG, OTHER, INTERVIEWBIT]
+                  example: "GFG"
+                level:
+                  type: string
+                  enum: [EASY, MEDIUM, HARD]
+                  example: "HARD"
+                type:
+                  type: string
+                  enum: [HOMEWORK, CLASSWORK]
+                  example: "CLASSWORK"
+                topic_id:
+                  type: integer
+                  example: 2
+                question_url:
+                  type: string
+                  format: uri
+                  example: "https://practice.geeksforgeeks.org/problems/two-sum/1"
+                solution_url:
+                  type: string
+                  format: uri
+                  example: "https://practice.geeksforgeeks.org/problems/two-sum/1/solution"
+      responses:
+        '200':
+          description: Question updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Question updated successfully"
+                  question:
+                    $ref: '#/components/schemas/Question'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Admin
+        - Questions
+      summary: Delete a question (Teacher or above)
+      description: Delete an existing question
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Question ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Question deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Question deleted successfully"
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/questions/bulk-upload:
+    post:
+      tags:
+        - Admin
+        - Questions
+      summary: Bulk upload questions (Teacher or above)
+      description: Upload multiple questions from a CSV file
       security:
         - bearerAuth: []
       requestBody:
@@ -1884,6 +2338,499 @@ paths:
                     additionalProperties: true
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/leaderboard:
+    post:
+      tags:
+        - Admin
+        - Leaderboard
+      summary: Get admin leaderboard
+      description: Get leaderboard with pagination and search
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                city:
+                  type: string
+                  description: Filter by city name or 'all'
+                  example: "all"
+                type:
+                  type: string
+                  description: Time period type
+                  enum: [all, weekly, monthly, alltime]
+                  default: all
+                  example: "all"
+                year:
+                  type: integer
+                  description: Filter by batch year
+                  example: 2024
+                page:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  example: 1
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 50
+                  example: 50
+      parameters:
+        - name: username
+          in: query
+          description: Search for specific username
+          schema:
+            type: string
+            example: "johndoe"
+      responses:
+        '200':
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  students:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StudentLeaderboardEntry'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/students:
+    get:
+      tags:
+        - Admin
+        - Students
+      summary: Get all students
+      description: Get all students with optional filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: batch_id
+          in: query
+          description: Filter by batch ID
+          schema:
+            type: integer
+            example: 1
+        - name: search
+          in: query
+          description: Search term for student names or usernames
+          schema:
+            type: string
+            example: "john"
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+      responses:
+        '200':
+          description: Students retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  students:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Admin
+        - Students
+      summary: Create a new student (Teacher or above)
+      description: Create a new student account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - username
+                - password
+                - batch_id
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "John Doe"
+                email:
+                  type: string
+                  format: email
+                  pattern: "^[^@]+@pwioi\\.com$"
+                  description: Must be a @pwioi.com email address
+                  example: "john.doe@pwioi.com"
+                username:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "johndoe"
+                password:
+                  type: string
+                  minLength: 6
+                  example: "password123"
+                batch_id:
+                  type: integer
+                  example: 1
+                enrollment_id:
+                  type: string
+                  maxLength: 100
+                  example: "ENR2024001"
+                leetcode_id:
+                  type: string
+                  maxLength: 100
+                  example: "johndoe_lc"
+                gfg_id:
+                  type: string
+                  maxLength: 100
+                  example: "johndoe_gfg"
+      responses:
+        '201':
+          description: Student created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Student created successfully"
+                  student:
+                    $ref: '#/components/schemas/Student'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/students/{id}:
+    patch:
+      tags:
+        - Admin
+        - Students
+      summary: Update student details (Teacher or above)
+      description: Update an existing student's details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "Updated Name"
+                username:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "updatedusername"
+                enrollment_id:
+                  type: string
+                  maxLength: 100
+                  example: "ENR2024002"
+                leetcode_id:
+                  type: string
+                  maxLength: 100
+                  example: "updated_lc"
+                gfg_id:
+                  type: string
+                  maxLength: 100
+                  example: "updated_gfg"
+      responses:
+        '200':
+          description: Student updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Student updated successfully"
+                  student:
+                    $ref: '#/components/schemas/Student'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Admin
+        - Students
+      summary: Delete student (Teacher or above)
+      description: Delete an existing student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Student deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Student deleted successfully"
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/students/progress:
+    post:
+      tags:
+        - Admin
+        - Students
+      summary: Add student progress (Teacher or above)
+      description: Manually add progress for a student
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - student_id
+                - question_id
+              properties:
+                student_id:
+                  type: integer
+                  example: 1
+                question_id:
+                  type: integer
+                  example: 1
+                solved_at:
+                  type: string
+                  format: date-time
+                  example: "2024-01-01T00:00:00Z"
+      responses:
+        '201':
+          description: Progress added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Progress added successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/bulk-operations:
+    post:
+      tags:
+        - Admin
+        - Students
+      summary: Bulk upload students
+      description: Upload multiple students from a CSV file
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file containing students
+      responses:
+        '201':
+          description: Students uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Students uploaded successfully"
+                  count:
+                    type: integer
+                    example: 50
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/test/leetcode/{username}:
+    get:
+      tags:
+        - Admin
+        - System
+      summary: Test LeetCode integration
+      description: Test LeetCode API integration for a username
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          description: LeetCode username to test
+          schema:
+            type: string
+            example: "johndoe"
+      responses:
+        '200':
+          description: LeetCode test successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "LeetCode integration test successful"
+                  data:
+                    type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/test/gfg/{username}:
+    get:
+      tags:
+        - Admin
+        - System
+      summary: Test GFG integration
+      description: Test GeeksforGeeks API integration for a username
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          description: GFG username to test
+          schema:
+            type: string
+            example: "johndoe"
+      responses:
+        '200':
+          description: GFG test successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "GFG integration test successful"
+                  data:
+                    type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/admin/students/sync/{id}:
+    post:
+      tags:
+        - Admin
+        - Students
+      summary: Manual sync student progress
+      description: Manually trigger progress sync for a student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Sync initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Student sync initiated successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -2936,6 +3883,494 @@ paths:
                         example: 20
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # SuperAdmin Routes
+  /api/superadmin/cities:
+    get:
+      tags:
+        - SuperAdmin
+        - Cities
+      summary: Get all cities (SuperAdmin)
+      description: Get all cities with optional search filter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          description: Search term for city names
+          schema:
+            type: string
+            example: "mumbai"
+      responses:
+        '200':
+          description: Cities retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - SuperAdmin
+        - Cities
+      summary: Create a new city (SuperAdmin)
+      description: Create a new city
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - city_name
+              properties:
+                city_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "New York"
+      responses:
+        '201':
+          description: City created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "City created successfully"
+                  city:
+                    $ref: '#/components/schemas/City'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/superadmin/cities/{id}:
+    delete:
+      tags:
+        - SuperAdmin
+        - Cities
+      summary: Delete a city (SuperAdmin)
+      description: Delete an existing city
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: City ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: City deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "City deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/superadmin/batches:
+    get:
+      tags:
+        - SuperAdmin
+        - Batches
+      summary: Get all batches (SuperAdmin)
+      description: Get all batches with optional city and year filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          description: Filter by city name
+          schema:
+            type: string
+            example: "mumbai"
+        - name: year
+          in: query
+          description: Filter by batch year
+          schema:
+            type: integer
+            example: 2024
+      responses:
+        '200':
+          description: Batches retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Batch'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - SuperAdmin
+        - Batches
+      summary: Create a new batch (SuperAdmin)
+      description: Create a new batch
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - batch_name
+                - city_id
+                - year
+              properties:
+                batch_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "Batch 2024"
+                city_id:
+                  type: integer
+                  example: 1
+                year:
+                  type: integer
+                  example: 2024
+      responses:
+        '201':
+          description: Batch created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Batch created successfully"
+                  batch:
+                    $ref: '#/components/schemas/Batch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/superadmin/batches/{id}:
+    patch:
+      tags:
+        - SuperAdmin
+        - Batches
+      summary: Update a batch (SuperAdmin)
+      description: Update an existing batch
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Batch ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - batch_name
+              properties:
+                batch_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "Updated Batch Name"
+      responses:
+        '200':
+          description: Batch updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Batch updated successfully"
+                  batch:
+                    $ref: '#/components/schemas/Batch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - SuperAdmin
+        - Batches
+      summary: Delete a batch (SuperAdmin)
+      description: Delete an existing batch
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Batch ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Batch deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Batch deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/superadmin/admins:
+    get:
+      tags:
+        - SuperAdmin
+      summary: Get all admins (SuperAdmin)
+      description: Get all admins with optional filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          description: Filter by admin role
+          schema:
+            type: string
+            enum: [INTERN, TEACHER, SUPERADMIN]
+            example: "TEACHER"
+        - name: city
+          in: query
+          description: Filter by city name
+          schema:
+            type: string
+            example: "mumbai"
+        - name: batch_id
+          in: query
+          description: Filter by batch ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Admins retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Admin'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - SuperAdmin
+      summary: Create a new admin (SuperAdmin)
+      description: Create a new admin account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - role
+                - batch_id
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "Admin User"
+                email:
+                  type: string
+                  format: email
+                  pattern: "^[^@]+@pwioi\\.com$"
+                  description: Must be a @pwioi.com email address
+                  example: "admin@pwioi.com"
+                password:
+                  type: string
+                  minLength: 6
+                  example: "adminpassword"
+                role:
+                  type: string
+                  enum: [INTERN, TEACHER, SUPERADMIN]
+                  example: "TEACHER"
+                batch_id:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Admin created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Admin created successfully"
+                  admin:
+                    $ref: '#/components/schemas/Admin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/superadmin/admins/{id}:
+    patch:
+      tags:
+        - SuperAdmin
+      summary: Update an admin (SuperAdmin)
+      description: Update an existing admin (only role and batch_id allowed)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Admin ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [INTERN, TEACHER, SUPERADMIN]
+                  example: "TEACHER"
+                batch_id:
+                  type: integer
+                  example: 1
+      responses:
+        '200':
+          description: Admin updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Admin updated successfully"
+                  admin:
+                    $ref: '#/components/schemas/Admin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - SuperAdmin
+      summary: Delete an admin (SuperAdmin)
+      description: Delete an existing admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Admin ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Admin deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Admin deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/superadmin/stats:
+    get:
+      tags:
+        - SuperAdmin
+      summary: Get system statistics (SuperAdmin)
+      description: Get overall system statistics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: object
+                    properties:
+                      totalCities:
+                        type: integer
+                        example: 10
+                      totalBatches:
+                        type: integer
+                        example: 25
+                      totalStudents:
+                        type: integer
+                        example: 500
+                      totalAdmins:
+                        type: integer
+                        example: 50
+                      totalQuestions:
+                        type: integer
+                        example: 1000
+                      totalTopics:
+                        type: integer
+                        example: 20
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -4079,3 +5514,46 @@ components:
                   $ref: '#/components/schemas/Admin'
               pagination:
                 $ref: '#/components/schemas/Pagination'
+
+    StudentLeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          example: 1
+        student_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "John Doe"
+        username:
+          type: string
+          example: "johndoe"
+        profile_image:
+          type: string
+          example: "https://s3.amazonaws.com/bucket/profile-images/student123.jpg"
+        total_solved:
+          type: integer
+          example: 125
+        easy_solved:
+          type: integer
+          example: 50
+        medium_solved:
+          type: integer
+          example: 60
+        hard_solved:
+          type: integer
+          example: 15
+        current_streak:
+          type: integer
+          example: 7
+        max_streak:
+          type: integer
+          example: 15
+        batch_name:
+          type: string
+          example: "Batch 2024"
+        city:
+          type: string
+          example: "Mumbai"
