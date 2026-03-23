@@ -146,7 +146,7 @@ export const getAllStudentsService = async (query: any) => {
 
                 github: student.github,
                 linkedin: student.linkedin,
-
+                profile_image_url:student.profile_image_url,
                 gfg_total_solved: student.gfg_total_solved,
                 lc_total_solved: student.lc_total_solved,
 

@@ -70,6 +70,7 @@ export const getAdminLeaderboard = async (req: Request, res: Response) => {
                 username: entry.username,
                 batch_year: entry.batch_year,
                 city_name: entry.city_name,
+                profile_image_url: entry.profile_image_url || null,
                 max_streak: entry.max_streak || 0,
                 easy_completion: Number(entry.easy_completion || 0),
                 medium_completion: Number(entry.medium_completion || 0),

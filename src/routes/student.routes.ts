@@ -9,6 +9,7 @@ import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
 import { getStudentProfile, getPublicStudentProfile } from "../controllers/studentProfile.controller";
 import { uploadSingle } from '../middlewares/uploadphoto.middleware';
 import { uploadProfileImage, deleteProfileImage, getProfileImage } from '../controllers/profileImage.controller';
+import { getAllBatches } from "../controllers/batch.controller";
 
 
 const router = Router();
@@ -18,6 +19,9 @@ router.get("/profile/:username", getPublicStudentProfile); // Public student pro
 
 // All routes require authentication + STUDENT role + student info extraction
 router.use(verifyToken, isStudent, extractStudentInfo);
+
+// Batches
+router.get("/batches", getAllBatches);
 
 // ===== TOPICS ROUTES =====
 router.get("/topics", getTopicsWithBatchProgress); // All topics with batch-specific classes, total questions per batch, and topic-specific solved question count (frontend will calculate progress percentage)

@@ -21,7 +21,7 @@ router.post('/student/logout', logoutStudent);
 
 // ===== ADMIN AUTH (Public) =====
 // Note: This is for ALL admins (Superadmin, Teacher, Intern)
-router.post('/admin/login', authLimiter, loginAdmin);
+router.post('/admin/login', loginAdmin);
 router.post('/admin/logout', logoutAdmin);
 
 // ===== PASSWORD RESET (Public) =====

@@ -22,6 +22,7 @@ import { getSuperAdminStats } from "../controllers/superadminStats.controller";
 
 const router = Router();
 
+
 // All routes require authentication + SUPERADMIN role
 router.use(verifyToken, isSuperAdmin);
 
