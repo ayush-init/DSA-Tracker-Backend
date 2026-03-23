@@ -20,7 +20,7 @@ DSA Tracker Backend is a robust, scalable platform designed for educational inst
 
 ---
 
-## 🚀 Latest Features
+##  Latest Features
 
 ### Enhanced Batch Management with Slug System
 - **Batch Slug Routing**: SEO-friendly URLs using `cityname-batchname-year` format
