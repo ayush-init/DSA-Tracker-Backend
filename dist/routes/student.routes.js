@@ -11,11 +11,15 @@ const leaderboard_controller_1 = require("../controllers/leaderboard.controller"
 const studentProfile_controller_1 = require("../controllers/studentProfile.controller");
 const uploadphoto_middleware_1 = require("../middlewares/uploadphoto.middleware");
 const profileImage_controller_1 = require("../controllers/profileImage.controller");
+const batch_controller_1 = require("../controllers/batch.controller");
+const profile_controller_1 = require("../controllers/profile.controller");
 const router = (0, express_1.Router)();
 // Public route - no authentication required
 router.get("/profile/:username", studentProfile_controller_1.getPublicStudentProfile); // Public student profile by username
 // All routes require authentication + STUDENT role + student info extraction
 router.use(auth_middleware_1.verifyToken, role_middleware_1.isStudent, student_middleware_1.extractStudentInfo);
+// Batches
+router.get("/batches", batch_controller_1.getAllBatches);
 // ===== TOPICS ROUTES =====
 router.get("/topics", topic_controller_1.getTopicsWithBatchProgress); // All topics with batch-specific classes, total questions per batch, and topic-specific solved question count (frontend will calculate progress percentage)
 router.get("/topics/:topicSlug", topic_controller_1.getTopicOverviewWithClassesSummary); // Topic overview with classes summary (name, duration, totalQuestions, solvedQuestions)
@@ -30,4 +34,5 @@ router.post("/profile-image", uploadphoto_middleware_1.uploadSingle, profileImag
 router.delete("/profile-image", profileImage_controller_1.deleteProfileImage); // Delete profile image
 router.get("/profile-image", profileImage_controller_1.getProfileImage); // Get profile image URL
 router.get("/profile", studentProfile_controller_1.getStudentProfile); // Complete student profile with all sections
+router.put("/profile", profile_controller_1.completeProfile); // Update student profile (leetcode, gfg, etc)
 exports.default = router;

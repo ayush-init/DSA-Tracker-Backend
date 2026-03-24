@@ -13,7 +13,7 @@ const getClassesByTopic = async (req, res) => {
         }
         const classes = await (0, class_service_1.getClassesByTopicService)({
             batchId: batch.id,
-            topicSlug: topicSlugParam, // now guaranteed string
+            topicSlug: topicSlugParam, // string
         });
         return res.json(classes);
     }

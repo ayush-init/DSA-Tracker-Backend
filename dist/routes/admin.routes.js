@@ -59,7 +59,6 @@ router.get("/roles", admin_controller_1.getRolesController);
 // Download Batch Report
 router.post("/student/reportdownload", csv_controller_1.downloadBatchReportController);
 router.post("/leaderboard", auth_middleware_1.verifyToken, role_middleware_1.isAdmin, leaderboard_controller_1.getAdminLeaderboard); // Single admin leaderboard with pagination and search
-router.get("/questions", question_controller_1.getAssignedQuestionsController);
 router.patch("/students/:id", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.updateStudentDetails);
 // Delete (Hard Delete)
 router.delete("/students/:id", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.deleteStudentDetails);
@@ -86,6 +85,5 @@ router.delete("/:batchSlug/topics/:topicSlug/classes/:classSlug", role_middlewar
 // Question assignment routes (topic context required)
 router.post("/:batchSlug/topics/:topicSlug/classes/:classSlug/questions", role_middleware_1.isTeacherOrAbove, questionVisibility_controller_1.assignQuestionsToClass);
 router.get("/:batchSlug/topics/:topicSlug/classes/:classSlug/questions", questionVisibility_controller_1.getAssignedQuestionsOfClass);
-0;
 router.delete("/:batchSlug/topics/:topicSlug/classes/:classSlug/questions/:questionId", role_middleware_1.isTeacherOrAbove, questionVisibility_controller_1.removeQuestionFromClass);
 exports.default = router;

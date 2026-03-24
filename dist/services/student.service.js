@@ -118,6 +118,7 @@ const getAllStudentsService = async (query) => {
                 gfg_id: student.gfg_id,
                 github: student.github,
                 linkedin: student.linkedin,
+                profile_image_url: student.profile_image_url,
                 gfg_total_solved: student.gfg_total_solved,
                 lc_total_solved: student.lc_total_solved,
                 totalSolved: student._count.progress,

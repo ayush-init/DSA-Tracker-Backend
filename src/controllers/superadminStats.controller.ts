@@ -1,5 +1,55 @@
 import { Request, Response } from "express";
+import prisma from "../config/prisma";
 import { getSuperAdminStatsService } from "../services/superadminStats.service";
+
+export const getCurrentSuperAdminController = async (req: Request, res: Response) => {
+    try {
+        // Get superadmin info from middleware (extracted from token)
+        const superadminInfo = (req as any).admin;
+        
+        if (!superadminInfo) {
+            return res.status(401).json({
+                success: false,
+                message: "SuperAdmin not authenticated"
+            });
+        }
+
+        // Get full superadmin details from database
+        const superadmin = await prisma.admin.findUnique({
+            where: { id: superadminInfo.id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true
+            }
+        });
+
+        if (!superadmin) {
+            return res.status(404).json({
+                success: false,
+                message: "SuperAdmin not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: superadmin.id,
+                name: superadmin.name,
+                email: superadmin.email,
+                role: superadmin.role
+            }
+        });
+
+    } catch (error) {
+        console.error("Get current superadmin error:", error);
+        return res.status(500).json({
+            success: false,
+            message: error instanceof Error ? error.message : "Failed to fetch current superadmin"
+        });
+    }
+};
 
 export const getSuperAdminStats = async (req: Request, res: Response) => {
     try {

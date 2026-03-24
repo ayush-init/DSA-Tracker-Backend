@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { verifyToken } from "../middlewares/auth.middleware";
 import { isSuperAdmin } from "../middlewares/role.middleware";
+import { extractAdminInfo } from "../middlewares/admin.middleware";
 // City controllers
 import { 
   createCity, 
@@ -18,13 +19,16 @@ import {
 
 // Admin management
 import { getAllAdminsController, updateAdminController, deleteAdminController, createAdminController } from "../controllers/admin.controller";
-import { getSuperAdminStats } from "../controllers/superadminStats.controller";
+import { getSuperAdminStats, getCurrentSuperAdminController } from "../controllers/superadminStats.controller";
 
 const router = Router();
 
 
 // All routes require authentication + SUPERADMIN role
-router.use(verifyToken, isSuperAdmin);
+router.use(verifyToken, isSuperAdmin, extractAdminInfo);
+
+// Current SuperAdmin Info
+router.get("/me", getCurrentSuperAdminController);
 
 // ===== CITY =====
 

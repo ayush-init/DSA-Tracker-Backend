@@ -12,11 +12,11 @@ router.post('/student/logout', auth_controller_1.logoutStudent);
 // Note: This is for ALL admins (Superadmin, Teacher, Intern)
 router.post('/admin/login', auth_controller_1.loginAdmin);
 router.post('/admin/logout', auth_controller_1.logoutAdmin);
+// ===== TOKEN REFRESH (Public) =====
+router.post('/refresh-token', auth_controller_1.refreshToken);
 // ===== PASSWORD RESET (Public) =====
 router.post('/forgot-password', rateLimit_util_1.passwordResetLimiter, auth_controller_1.forgotPassword);
 router.post('/reset-password', rateLimit_util_1.otpLimiter, auth_controller_1.resetPassword);
-// ===== TOKEN REFRESH (Public) =====
-router.post('/refresh-token', auth_controller_1.refreshToken);
 // ===== GOOGLE OAUTH (Public) =====
 router.post('/google-login', auth_controller_1.googleLogin);
 exports.default = router;

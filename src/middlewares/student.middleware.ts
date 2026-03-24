@@ -14,7 +14,7 @@ export interface StudentRequest extends Request {
 export const extractStudentInfo = (req: StudentRequest, res: Response, next: NextFunction) => {
   const user = req.user as AccessTokenPayload;
   
-  if (user?.userType === 'student') {
+  if (user?.role === 'STUDENT') {
     // 🔑 Extract student-specific info from token
     req.student = user; // Set the entire user object
     req.studentId = user.id; // Set studentId explicitly

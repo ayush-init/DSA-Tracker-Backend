@@ -5,6 +5,74 @@ import { getCityWiseStats } from "../services/admin.service";
 import { createAdminService, getAllAdminsService, updateAdminService, deleteAdminService } from "../services/admin.service";
 import { syncOneStudent } from "../services/progressSync.service";
 
+export const getCurrentAdminController = async (req: Request, res: Response) => {
+    try {
+        // Get admin info from middleware (extracted from token)
+        const adminInfo = (req as any).admin;
+        
+        if (!adminInfo) {
+            return res.status(401).json({
+                success: false,
+                message: "Admin not authenticated"
+            });
+        }
+
+        // Get full admin details from database
+        const admin = await prisma.admin.findUnique({
+            where: { id: adminInfo.id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                city_id: true,
+                batch_id: true,
+                city: {
+                    select: {
+                        id: true,
+                        city_name: true
+                    }
+                },
+                batch: {
+                    select: {
+                        id: true,
+                        batch_name: true,
+                        year: true
+                    }
+                }
+            }
+        });
+
+        if (!admin) {
+            return res.status(404).json({
+                success: false,
+                message: "Admin not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: admin.id,
+                name: admin.name,
+                email: admin.email,
+                role: admin.role,
+                cityId: admin.city_id,
+                batchId: admin.batch_id,
+                city: admin.city,
+                batch: admin.batch
+            }
+        });
+
+    } catch (error) {
+        console.error("Get current admin error:", error);
+        return res.status(500).json({
+            success: false,
+            message: error instanceof Error ? error.message : "Failed to fetch current admin"
+        });
+    }
+};
+
 export const getAdminStats = async (req: Request, res: Response) => {
     try {
         const { batch_id } = req.body;

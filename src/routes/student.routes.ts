@@ -7,6 +7,7 @@ import { getClassDetailsWithFullQuestions } from "../controllers/class.controlle
 import { getAllQuestionsWithFilters } from "../controllers/questionVisibility.controller";
 import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
 import { getStudentProfile, getPublicStudentProfile } from "../controllers/studentProfile.controller";
+import { getCurrentStudent } from "../controllers/student.controller";
 import { uploadSingle } from '../middlewares/uploadphoto.middleware';
 import { uploadProfileImage, deleteProfileImage, getProfileImage } from '../controllers/profileImage.controller';
 import { getAllBatches } from "../controllers/batch.controller";
@@ -19,6 +20,9 @@ router.get("/profile/:username", getPublicStudentProfile); // Public student pro
 
 // All routes require authentication + STUDENT role + student info extraction
 router.use(verifyToken, isStudent, extractStudentInfo);
+
+// Current student info (lightweight - for header/homepage)
+router.get("/me", getCurrentStudent);
 
 // Batches
 router.get("/batches", getAllBatches);

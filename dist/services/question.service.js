@@ -55,14 +55,8 @@ exports.createQuestionService = createQuestionService;
 const getAllQuestionsService = async ({ topicSlug, level, platform, type, search, page = 1, limit = 10, }) => {
     const where = {};
     // 🔎 Topic filter
-    if (topicSlug) {
-        const topic = await prisma_1.default.topic.findUnique({
-            where: { slug: topicSlug },
-        });
-        if (!topic) {
-            throw new Error("Topic not found");
-        }
-        where.topic_id = topic.id;
+    if (topicSlug && topicSlug !== 'all') {
+        where.topic_id = topicSlug;
     }
     // 🔎 Level filter
     if (level) {

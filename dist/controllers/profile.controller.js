@@ -8,7 +8,7 @@ const prisma_1 = __importDefault(require("../config/prisma"));
 const completeProfile = async (req, res) => {
     try {
         const studentId = req.user?.id;
-        const { city_id, batch_id, leetcode_id, gfg_id, github, linkedin } = req.body;
+        const { city_id, batch_id, leetcode_id, gfg_id, github, linkedin, username } = req.body;
         if (!city_id || !batch_id) {
             return res.status(400).json({ error: "City and Batch required" });
         }
@@ -28,6 +28,7 @@ const completeProfile = async (req, res) => {
                 gfg_id,
                 github,
                 linkedin,
+                ...(username ? { username } : {})
             },
         });
         res.json({

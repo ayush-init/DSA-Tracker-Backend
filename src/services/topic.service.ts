@@ -1,21 +1,23 @@
-import slugify from "slugify";
 import prisma from "../config/prisma";
-import { S3Service } from "./s3.service";
+import { slugify } from "transliteration";
+import { S3Service } from "../services/s3.service";
 
-interface CreateTopicInput {
-  topic_name: string;
-  photo?: Express.Multer.File;
-}
+export const createTopicService = async ({ topic_name, photo }: { topic_name: string; photo?: Express.Multer.File }) => {
+  let photoKey: string | null = null;
+  let photoUrl: string | null = null;
 
-export const createTopicService = async ({
-  topic_name,
-  photo,
-}: CreateTopicInput) => {
-
-  if (!topic_name) {
-    throw new Error("Topic name is required");
+  // Handle photo upload if provided
+  if (photo) {
+    try {
+      const uploadResult = await S3Service.uploadFile(photo, 'topics');
+      photoUrl = uploadResult.url;
+      photoKey = uploadResult.key;
+    } catch (error) {
+      throw new Error("Failed to upload photo to S3");
+    }
   }
 
+  // Generate slug from topic name
   const baseSlug = slugify(topic_name, {
     lower: true,
     strict: true,
@@ -24,27 +26,13 @@ export const createTopicService = async ({
   let finalSlug = baseSlug;
   let counter = 1;
 
-  // Ensure global unique slug
+  // Check for existing slug and generate unique one if needed
   while (
-    await prisma.topic.findUnique({
+    await prisma.topic.findFirst({
       where: { slug: finalSlug },
     })
   ) {
     finalSlug = `${baseSlug}-${counter++}`;
-  }
-
-  let photo_url: string | null = null;
-  let photoKey: string | null = null;
-
-  // Upload photo to S3 if provided
-  if (photo) {
-    try {
-      const uploadResult = await S3Service.uploadFile(photo, 'topics');
-      photo_url = uploadResult.url;
-      photoKey = uploadResult.key;
-    } catch (error) {
-      throw new Error("Failed to upload photo to S3");
-    }
   }
 
   try {
@@ -52,12 +40,11 @@ export const createTopicService = async ({
       data: {
         topic_name,
         slug: finalSlug,
-        photo_url,
+        photo_url: photoUrl,
       },
     });
 
     return topic;
-
   } catch (error: any) {
     // If database creation fails, clean up uploaded photo
     if (photoKey) {
@@ -76,9 +63,7 @@ export const createTopicService = async ({
   }
 };
 
-
 export const getAllTopicsService = async () => {
-
   const topics = await prisma.topic.findMany({
     orderBy: { created_at: "desc" },
   });
@@ -91,103 +76,34 @@ interface GetTopicsForBatchInput {
   query?: any;
 }
 
-export const getTopicsForBatchService = async ({
-  batchId,
-  query = {}
-}: GetTopicsForBatchInput) => {
-
-  const topics = await prisma.topic.findMany({
+export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForBatchInput) => {
+  const batch = await prisma.batch.findUnique({
+    where: { id: batchId },
     include: {
       classes: {
-        where: {
-          batch_id: batchId
-        },
+        where: { batch_id: batchId },
         include: {
+          topic: true,
           questionVisibility: {
             include: {
               question: {
                 select: {
-                  id: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  id: true,
+                  topic_id: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
 
-  let formatted = topics.map(topic => {
-
-    const uniqueQuestions = new Set<number>();
-
-    topic.classes.forEach(cls => {
-      cls.questionVisibility.forEach(qv => {
-        uniqueQuestions.add(qv.question.id);
-      });
-    });
-    const latestClassDate = topic.classes.length > 0
-      ? new Date(Math.max(...topic.classes.map(cls => new Date(cls.created_at).getTime())))
-      : new Date(0);
-
-    const firstClassDate = topic.classes.length > 0
-      ? new Date(Math.min(...topic.classes.map(cls => new Date(cls.created_at).getTime())))
-      : null; // Fallback to topic creation if no classes
-
-    return {
-      id: topic.id,
-      topic_name: topic.topic_name,
-      slug: topic.slug,
-      photo_url: topic.photo_url,
-      classCount: topic.classes.length,
-      questionCount: uniqueQuestions.size,
-      firstClassCreated_at: firstClassDate, // Changed: First class creation date
-      latestClassDate: latestClassDate
-    };
-  });
-
-  // Apply Search
-  if (query.search) {
-    const st = query.search.toLowerCase();
-    formatted = formatted.filter(t => t.topic_name.toLowerCase().includes(st) || t.slug.includes(st));
+  if (!batch) {
+    throw new Error("Batch not found");
   }
 
-  // Apply Sorting
-  // classes, questions, recent, oldest
-  if (query.sortBy === 'classes') {
-    formatted.sort((a, b) => b.classCount - a.classCount);
-  } else if (query.sortBy === 'questions') {
-    formatted.sort((a, b) => b.questionCount - a.questionCount);
-  }
-  else if (query.sortBy === 'oldest') {
-    // Sort by oldest class creation date
-    formatted.sort((a, b) => a.latestClassDate.getTime() - b.latestClassDate.getTime());
-  } else {
-    // Default: recent - Sort by latest class creation date
-    formatted.sort((a, b) => b.latestClassDate.getTime() - a.latestClassDate.getTime());
-  }
-
-  // Apply Pagination
-  let page = Number(query.page) || 1;
-  let limit = Number(query.limit) || 12;
-  const totalCount = formatted.length;
-  const totalPages = Math.ceil(totalCount / limit);
-
-  if (page < 1) page = 1;
-
-  const paginated = formatted.slice((page - 1) * limit, page * limit);
-
-  return {
-    topics: paginated,
-    pagination: {
-      page,
-      limit,
-      total: totalCount,
-      totalPages,
-      hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1
-    }
-  };
+  return batch;
 };
 
 interface UpdateTopicInput {
@@ -197,13 +113,8 @@ interface UpdateTopicInput {
   removePhoto?: boolean;
 }
 
-export const updateTopicService = async ({
-  topicSlug,
-  topic_name,
-  photo,
-  removePhoto,
-}: UpdateTopicInput) => {
-
+export const updateTopicService = async ({ topicSlug, topic_name, photo, removePhoto }: UpdateTopicInput) => {
+  // Find existing topic
   const existingTopic = await prisma.topic.findUnique({
     where: { slug: topicSlug },
   });
@@ -315,7 +226,6 @@ interface DeleteTopicInput {
 }
 
 export const deleteTopicService = async ({ topicSlug }: DeleteTopicInput) => {
-
   const topic = await prisma.topic.findUnique({
     where: { slug: topicSlug },
   });
@@ -368,7 +278,6 @@ export const getTopicsWithBatchProgressService = async ({
   studentId,
   batchId,
 }: GetTopicsWithBatchProgressInput) => {
-
   // Get all topics with batch-specific classes and question counts
   const topics = await prisma.topic.findMany({
     include: {
@@ -445,11 +354,19 @@ export const getTopicsWithBatchProgressService = async ({
     // Get solved questions for this topic
     const solvedQuestions = solvedByTopic.get(topic.id) || new Set();
 
+    // Find earliest class creation date, or null if no classes
+    const firstClass = topic.classes.length > 0 
+      ? topic.classes.reduce((earliest: any, cls: any) => {
+          return !earliest || cls.created_at < earliest.created_at ? cls : earliest;
+        }, null)
+      : null;
+
     return {
       id: topic.id,
       topic_name: topic.topic_name,
       slug: topic.slug,
       photo_url: topic.photo_url,
+      firstClassCreatedAt: firstClass?.created_at || null,
       batchSpecificData: {
         totalClasses: topic.classes.length,
         totalQuestions: assignedQuestions.size,
@@ -458,10 +375,27 @@ export const getTopicsWithBatchProgressService = async ({
     };
   });
 
+  // Sort by firstClassCreatedAt (newest first), topics without classes go to end
+  formattedTopics.sort((a: any, b: any) => {
+    // Both have classes - sort by date (newest first)
+    if (a.firstClassCreatedAt && b.firstClassCreatedAt) {
+      return new Date(b.firstClassCreatedAt).getTime() - new Date(a.firstClassCreatedAt).getTime();
+    }
+    // Only A has classes - A comes first
+    if (a.firstClassCreatedAt && !b.firstClassCreatedAt) {
+      return -1;
+    }
+    // Only B has classes - B comes first  
+    if (!a.firstClassCreatedAt && b.firstClassCreatedAt) {
+      return 1;
+    }
+    // Neither has classes - keep original order
+    return 0;
+  });
+
   return formattedTopics;
 };
 
-// Student-specific service - get topic overview with classes summary
 interface GetTopicOverviewWithClassesSummaryInput {
   studentId: number;
   batchId: number;
@@ -473,7 +407,6 @@ export const getTopicOverviewWithClassesSummaryService = async ({
   batchId,
   topicSlug,
 }: GetTopicOverviewWithClassesSummaryInput) => {
-
   // Get topic with batch-specific classes
   const topic = await prisma.topic.findFirst({
     where: { slug: topicSlug },

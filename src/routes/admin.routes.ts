@@ -10,7 +10,7 @@ import { createQuestion, deleteQuestion, getAllQuestions, getAssignedQuestionsCo
 import { bulkUploadQuestions } from "../controllers/questionBulk.controller";
 import { uploadImage } from "../middlewares/imageUpload.middleware";
 import { upload } from "../middlewares/upload.middleware";
-import { getAdminStats, getRolesController } from "../controllers/admin.controller";
+import { getAdminStats, getRolesController, getCurrentAdminController } from "../controllers/admin.controller";
 import { downloadBatchReportController } from "../controllers/csv.controller";
 import { getAdminLeaderboard } from "../controllers/leaderboard.controller";
 import { assignQuestionsToClass, getAssignedQuestionsOfClass, removeQuestionFromClass } from "../controllers/questionVisibility.controller";
@@ -35,6 +35,9 @@ const router = Router();
 router.use(verifyToken);
 router.use(isAdmin);
 router.use(extractAdminInfo);  // Add admin info extraction
+
+// Current Admin Info
+router.get("/me", getCurrentAdminController);
 
 /* ==========================================
    GLOBAL ROUTES (NO BATCH CONTEXT)

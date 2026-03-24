@@ -8,6 +8,54 @@ import {
 } from "../services/student.service";
 
 import { createStudentService } from "../services/student.service";
+import prisma from "../config/prisma";
+
+export const getCurrentStudent = async (req: Request, res: Response) => {
+    try {
+        const studentId = (req as any).user?.id;
+        
+        if (!studentId) {
+            return res.status(401).json({ success: false, message: "Student not authenticated" });
+        }
+
+        const student = await prisma.student.findUnique({
+            where: { id: studentId },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+                profile_image_url: true,
+                leetcode_id: true,
+                gfg_id: true
+            }
+        });
+
+        if (!student) {
+            return res.status(404).json({ success: false, message: "Student not found" });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: student.id,
+                name: student.name,
+                username: student.username,
+                email: student.email,
+                profileImageUrl: student.profile_image_url,
+                leetcode: student.leetcode_id,
+                gfg: student.gfg_id
+            }
+        });
+    } catch (error) {
+        console.error("Get current student error:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: error instanceof Error ? error.message : "Failed to fetch current student" 
+        });
+    }
+};
+
 export const updateStudentDetails = async (req: Request, res: Response) => {
     try {
 

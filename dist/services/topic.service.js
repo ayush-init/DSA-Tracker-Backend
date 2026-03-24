@@ -98,6 +98,12 @@ const getTopicsForBatchService = async ({ batchId, query = {} }) => {
                 uniqueQuestions.add(qv.question.id);
             });
         });
+        const latestClassDate = topic.classes.length > 0
+            ? new Date(Math.max(...topic.classes.map(cls => new Date(cls.created_at).getTime())))
+            : new Date(0);
+        const firstClassDate = topic.classes.length > 0
+            ? new Date(Math.min(...topic.classes.map(cls => new Date(cls.created_at).getTime())))
+            : null; // Fallback to topic creation if no classes
         return {
             id: topic.id,
             topic_name: topic.topic_name,
@@ -105,7 +111,8 @@ const getTopicsForBatchService = async ({ batchId, query = {} }) => {
             photo_url: topic.photo_url,
             classCount: topic.classes.length,
             questionCount: uniqueQuestions.size,
-            created_at: topic.created_at
+            firstClassCreated_at: firstClassDate, // Changed: First class creation date
+            latestClassDate: latestClassDate
         };
     });
     // Apply Search
@@ -122,11 +129,12 @@ const getTopicsForBatchService = async ({ batchId, query = {} }) => {
         formatted.sort((a, b) => b.questionCount - a.questionCount);
     }
     else if (query.sortBy === 'oldest') {
-        formatted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        // Sort by oldest class creation date
+        formatted.sort((a, b) => a.latestClassDate.getTime() - b.latestClassDate.getTime());
     }
     else {
-        // Default: recent
-        formatted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // Default: recent - Sort by latest class creation date
+        formatted.sort((a, b) => b.latestClassDate.getTime() - a.latestClassDate.getTime());
     }
     // Apply Pagination
     let page = Number(query.page) || 1;
