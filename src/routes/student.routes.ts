@@ -10,7 +10,7 @@ import { getStudentProfile, getPublicStudentProfile } from "../controllers/stude
 import { uploadSingle } from '../middlewares/uploadphoto.middleware';
 import { uploadProfileImage, deleteProfileImage, getProfileImage } from '../controllers/profileImage.controller';
 import { getAllBatches } from "../controllers/batch.controller";
-
+import { completeProfile } from "../controllers/profile.controller";
 
 const router = Router();
 
@@ -44,7 +44,6 @@ router.get("/profile-image", getProfileImage); // Get profile image URL
 
 
 router.get("/profile", getStudentProfile); // Complete student profile with all sections
-
-
+router.put("/profile", completeProfile); // Update student profile (leetcode, gfg, etc)
 
 export default router;

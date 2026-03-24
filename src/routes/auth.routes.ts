@@ -15,7 +15,7 @@ import { passwordResetLimiter, otpLimiter } from '../utils/rateLimit.util';
 const router = Router();
 
 // ===== STUDENT AUTH (Public) =====
-router.post('/student/register',   registerStudent);
+router.post('/student/register',registerStudent);
 router.post('/student/login', loginStudent);
 router.post('/student/logout', logoutStudent);
 
@@ -24,12 +24,12 @@ router.post('/student/logout', logoutStudent);
 router.post('/admin/login',   loginAdmin);
 router.post('/admin/logout', logoutAdmin);
 
+// ===== TOKEN REFRESH (Public) =====
+router.post('/refresh-token',   refreshToken);
+
 // ===== PASSWORD RESET (Public) =====
 router.post('/forgot-password', passwordResetLimiter, forgotPassword);
 router.post('/reset-password', otpLimiter, resetPassword);
-
-// ===== TOKEN REFRESH (Public) =====
-router.post('/refresh-token',   refreshToken);
 
 // ===== GOOGLE OAUTH (Public) =====
 router.post('/google-login',   googleLogin);
