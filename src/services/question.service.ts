@@ -51,16 +51,15 @@ export const createQuestionService = async ({
   const finalPlatform =
     platform ?? detectPlatform(question_link);
 
-  // Prevent duplicate question link
+  // Prevent duplicate question link (must be unique across all topics)
   const duplicate = await prisma.question.findFirst({
     where: {
       question_link,
-      topic_id,
     },
   });
 
   if (duplicate) {
-    throw new Error("Question already exists for this topic");
+    throw new Error("Question link already exists");
   }
 
   const question = await prisma.question.create({
@@ -217,19 +216,16 @@ export const updateQuestionService = async ({
 
   const finalLink = question_link ?? existing.question_link;
 
-  // Prevent duplicate link inside same topic
+  // Prevent duplicate link (must be unique across all topics)
   const duplicate = await prisma.question.findFirst({
     where: {
       question_link: finalLink,
-      topic_id: finalTopicId,
       NOT: { id: existing.id },
     },
   });
 
   if (duplicate) {
-    throw new Error(
-      "Question with same link already exists in this topic"
-    );
+    throw new Error("Question link already exists");
   }
 
   const updated = await prisma.question.update({

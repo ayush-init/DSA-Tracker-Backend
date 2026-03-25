@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
 import bcrypt from "bcryptjs";
+import { generateUsername } from "../utils/usernameGenerator";
 import { Prisma } from "@prisma/client";
 
 
@@ -399,8 +400,6 @@ export const getStudentReportService = async (username: string) => {
     }
 };
 
-
-// ==============================
 // UPDATE STUDENT
 // ==============================
 
@@ -490,6 +489,17 @@ export const createStudentService = async (data: any) => {
             gfg_id
         } = data;
 
+        // Only require name and email, username will be generated if not provided
+        if (!name || !email) {
+            throw new Error("Name and email are required");
+        }
+
+        // Generate username if not provided
+        let finalUsername = username;
+        if (!finalUsername) {
+            finalUsername = await generateUsername(name, enrollment_id);
+        }
+
         // batch exist check karo
         const batch = await prisma.batch.findUnique({
             where: { id: batch_id },
@@ -513,7 +523,7 @@ export const createStudentService = async (data: any) => {
             data: {
                 name,
                 email,
-                username,
+                username: finalUsername,
                 password_hash,
                 enrollment_id,
                 batch_id,

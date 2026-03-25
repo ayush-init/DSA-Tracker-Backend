@@ -24,6 +24,19 @@ export const getCurrentStudent = async (req: Request, res: Response) => {
                 id: true,
                 name: true,
                 username: true,
+                city: {
+                    select: {
+                        id: true,
+                        city_name: true
+                    }
+                },
+                batch: {
+                    select: {
+                        id: true,
+                        batch_name: true,
+                        year: true
+                    }
+                },
                 email: true,
                 profile_image_url: true,
                 leetcode_id: true,
@@ -41,6 +54,8 @@ export const getCurrentStudent = async (req: Request, res: Response) => {
                 id: student.id,
                 name: student.name,
                 username: student.username,
+                city: student.city,
+                batch: student.batch,
                 email: student.email,
                 profileImageUrl: student.profile_image_url,
                 leetcode: student.leetcode_id,

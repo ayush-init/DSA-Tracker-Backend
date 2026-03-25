@@ -9,6 +9,8 @@ import { getAllQuestionsWithFilters } from "../controllers/questionVisibility.co
 import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
 import { getPublicStudentProfile } from "../controllers/studentProfile.controller";
 import { getCurrentStudent } from "../controllers/student.controller";
+import { updateStudentProfile } from "../controllers/updateStudentProfile.controller";
+import { getStudentById } from "../controllers/getStudentById.controller";
 import { uploadSingle } from '../middlewares/uploadphoto.middleware';
 import { uploadProfileImage, deleteProfileImage, getProfileImage } from '../controllers/profileImage.controller';
 import { getAllBatches } from "../controllers/batch.controller";
@@ -25,6 +27,9 @@ router.use(verifyToken, isStudent, extractStudentInfo);
 
 // Current student info (lightweight - for header/homepage)
 router.get("/me", getCurrentStudent);
+
+// Update current student profile (coding profiles, etc.)
+router.put("/me", updateStudentProfile);
 
 // Batches
 router.get("/batches", getAllBatches);
