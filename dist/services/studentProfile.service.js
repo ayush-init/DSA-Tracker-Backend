@@ -52,7 +52,8 @@ const getStudentProfileService = async (studentId) => {
                 question: {
                     select: {
                         question_name: true,
-                        level: true
+                        level: true,
+                        question_link: true
                     }
                 }
             },
@@ -115,7 +116,8 @@ const getStudentProfileService = async (studentId) => {
                 count: Number(h.count)
             })),
             recentActivity: recentActivity.map((a) => ({
-                problemTitle: a.question.question_name,
+                question_name: a.question.question_name,
+                question_link: a.question.question_link,
                 difficulty: a.question.level,
                 solvedAt: a.sync_at
             }))
@@ -134,6 +136,7 @@ const getPublicStudentProfileService = async (username) => {
             id: true,
             name: true,
             username: true,
+            enrollment_id: true,
             github: true,
             linkedin: true,
             leetcode_id: true,
@@ -169,7 +172,8 @@ const getPublicStudentProfileService = async (username) => {
             question: {
                 select: {
                     question_name: true,
-                    level: true
+                    level: true,
+                    question_link: true
                 }
             }
         },
@@ -178,6 +182,7 @@ const getPublicStudentProfileService = async (username) => {
         },
         take: 5
     });
+    const leaderboard = student.leaderboards;
     const heatmap = await prisma_1.default.$queryRaw `
       SELECT DATE(sync_at) as date, COUNT(*) as count
       FROM "StudentProgress"
@@ -185,12 +190,12 @@ const getPublicStudentProfileService = async (username) => {
       GROUP BY DATE(sync_at)
       ORDER BY date DESC
     `;
-    const leaderboard = student.leaderboards;
     return {
         student: {
             id: student.id,
             name: student.name,
             username: student.username,
+            enrollmentId: student.enrollment_id,
             city: student.city?.city_name || null,
             batch: student.batch?.batch_name || null,
             year: student.batch?.year || null,
@@ -229,7 +234,8 @@ const getPublicStudentProfileService = async (username) => {
             count: Number(h.count)
         })),
         recentActivity: recentActivity.map((a) => ({
-            problemTitle: a.question.question_name,
+            question_name: a.question.question_name,
+            question_link: a.question.question_link,
             difficulty: a.question.level,
             solvedAt: a.sync_at
         }))

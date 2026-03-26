@@ -101,46 +101,84 @@ export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForB
   }
 
   // Get ALL topics for this batch (not just ones with classes)
-  const allTopics = await prisma.topic.findMany({
-    where: {
-      // Get topics that are either:
-      // 1. Assigned to this batch via classes, OR
-      // 2. Global topics not assigned to any specific batch
-      OR: [
-        {
-          classes: {
-            some: {
-              batch_id: batchId
-            }
-          }
-        },
-        {
-          classes: {
-            none: {}  // Global topics with no classes
-          }
-        }
-      ]
-    },
-    include: {
-      classes: {
-        where: {
-          batch_id: batchId
-        },
-        include: {
-          questionVisibility: {
-            include: {
-              question: {
-                select: {
-                  id: true,
-                  topic_id: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+  // const allTopics = await prisma.topic.findMany({
+  //   where: {
+  //     // Get topics that are either:
+  //     // 1. Assigned to this batch via classes, OR
+  //     // 2. Global topics not assigned to any specific batch
+  //     OR: [
+  //       {
+  //         classes: {
+  //           some: {
+  //             batch_id: batchId
+  //           }
+  //         }
+  //       },
+  //       {
+  //         classes: {
+  //           none: {}  // Global topics with no classes
+  //         }
+  //       }
+  //     ]
+  //   },
+  //   include: {
+  //     classes: {
+  //       where: {
+  //         batch_id: batchId
+  //       },
+  //       include: {
+  //         questionVisibility: {
+  //           include: {
+  //             question: {
+  //               select: {
+  //                 id: true,
+  //                 topic_id: true,
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   },
+  //   orderBy: { created_at: "desc" }
+  // });
+     const allTopics = await prisma.topic.findMany({
     orderBy: { created_at: "desc" }
+  });
+ 
+  // Step 2: Get all classes for THIS batch
+  const batchClasses = await prisma.class.findMany({
+    where: { batch_id: batchId },
+    include: {
+      questionVisibility: true
+    }
+  });
+ 
+  // Step 3: Create map of topic -> classes/questions for THIS batch
+  const topicStats = new Map();
+  
+  batchClasses.forEach(cls => {
+    const currentStats = topicStats.get(cls.topic_id) || { classCount: 0, questionCount: 0 };
+    currentStats.classCount += 1;
+    currentStats.questionCount += cls.questionVisibility.length;
+    topicStats.set(cls.topic_id, currentStats);
+  });
+ 
+  // Step 4: Transform all topics with stats
+  const topics = allTopics.map(topic => {
+    const stats = topicStats.get(topic.id) || { classCount: 0, questionCount: 0 };
+    
+    return {
+      id: topic.id.toString(),
+      topic_name: topic.topic_name,
+      slug: topic.slug,
+      photo_url: topic.photo_url,
+      created_at: topic.created_at,
+      updated_at: topic.updated_at,
+      classCount: stats.classCount,        // 0 for new batches
+      questionCount: stats.questionCount,  // 0 for new batches
+      firstClassCreated_at: null
+    };
   });
 
   // Create topic map with class counts
@@ -169,7 +207,7 @@ export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForB
     }
   });
 
-  const topics = Array.from(topicMap.values());
+  
   
   // Apply search filter if provided
   let filteredTopics = topics;

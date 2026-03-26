@@ -53,13 +53,16 @@ router.post("/questions", role_middleware_1.isTeacherOrAbove, question_controlle
 router.get("/questions", question_controller_1.getAllQuestions);
 router.patch("/questions/:id", role_middleware_1.isTeacherOrAbove, question_controller_1.updateQuestion);
 router.delete("/questions/:id", role_middleware_1.isTeacherOrAbove, question_controller_1.deleteQuestion);
+// Bulk Operation for Question 
 router.post("/questions/bulk-upload", role_middleware_1.isTeacherOrAbove, upload_middleware_1.upload.single("file"), questionBulk_controller_1.bulkUploadQuestions);
+// Download Batch Report
+router.post("/student/reportdownload", csv_controller_1.downloadBatchReportController);
+// Bulk Operation for Studenta 
+router.post("/bulk-operations", upload_middleware_1.upload.single("file"), bulk_controller_1.bulkStudentUploadController);
 // Admin Statistics
 router.post("/stats", admin_controller_1.getAdminStats);
 // Roles
 router.get("/roles", admin_controller_1.getRolesController);
-// Download Batch Report
-router.post("/student/reportdownload", csv_controller_1.downloadBatchReportController);
 router.post("/leaderboard", auth_middleware_1.verifyToken, role_middleware_1.isAdmin, leaderboard_controller_1.getAdminLeaderboard); // Single admin leaderboard with pagination and search
 router.patch("/students/:id", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.updateStudentDetails);
 // Delete (Hard Delete)
@@ -71,7 +74,6 @@ router.post("/students/progress", role_middleware_1.isTeacherOrAbove, role_middl
 router.get("/test/leetcode/:username", test_controller_1.testLeetcode);
 router.get("/test/gfg/:username", test_controller_1.testGfg);
 router.post("/students/sync/:id", progress_controller_1.manualSync);
-router.post("/bulk-operations", upload_middleware_1.upload.single("file"), bulk_controller_1.bulkStudentUploadController);
 // Everything below requires valid batchSlug
 router.use("/:batchSlug", batch_middleware_1.resolveBatch);
 router.get("/:batchSlug/topics", topic_controller_1.getTopicsForBatch);

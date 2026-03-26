@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.addStudentProgressService = exports.createStudentService = exports.deleteStudentDetailsService = exports.updateStudentDetailsService = exports.getStudentReportService = exports.getAllStudentsService = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const usernameGenerator_1 = require("../utils/usernameGenerator");
 const client_1 = require("@prisma/client");
 // ==============================
 // GET ALL STUDENTS
@@ -335,7 +336,6 @@ const getStudentReportService = async (username) => {
     }
 };
 exports.getStudentReportService = getStudentReportService;
-// ==============================
 // UPDATE STUDENT
 // ==============================
 const updateStudentDetailsService = async (id, body) => {
@@ -393,6 +393,15 @@ exports.deleteStudentDetailsService = deleteStudentDetailsService;
 const createStudentService = async (data) => {
     try {
         const { name, email, username, password, enrollment_id, batch_id, leetcode_id, gfg_id } = data;
+        // Only require name and email, username will be generated if not provided
+        if (!name || !email) {
+            throw new Error("Name and email are required");
+        }
+        // Generate username if not provided
+        let finalUsername = username;
+        if (!finalUsername) {
+            finalUsername = await (0, usernameGenerator_1.generateUsername)(name, enrollment_id);
+        }
         // batch exist check karo
         const batch = await prisma_1.default.batch.findUnique({
             where: { id: batch_id },
@@ -412,7 +421,7 @@ const createStudentService = async (data) => {
             data: {
                 name,
                 email,
-                username,
+                username: finalUsername,
                 password_hash,
                 enrollment_id,
                 batch_id,

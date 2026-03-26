@@ -75,24 +75,5 @@ class ProfileImageService {
             throw error;
         }
     }
-    /**
-     * Get profile image URL for student
-     */
-    static async getProfileImage(studentId) {
-        try {
-            const student = await prisma_1.default.student.findUnique({
-                where: { id: studentId },
-                select: { profile_image_url: true }
-            });
-            if (!student) {
-                throw new Error('Student not found');
-            }
-            return { url: student.profile_image_url };
-        }
-        catch (error) {
-            console.error('Get profile image error:', error);
-            throw error;
-        }
-    }
 }
 exports.ProfileImageService = ProfileImageService;

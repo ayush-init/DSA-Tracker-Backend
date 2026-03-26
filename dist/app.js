@@ -16,6 +16,7 @@ const student_routes_1 = __importDefault(require("./routes/student.routes"));
 const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const superadmin_routes_1 = __importDefault(require("./routes/superadmin.routes"));
 const public_routes_1 = __importDefault(require("./routes/public.routes"));
+const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const sync_job_1 = require("./jobs/sync.job");
 const s3_routes_1 = __importDefault(require("./routes/s3.routes"));
 dotenv_1.default.config();
@@ -38,6 +39,7 @@ app.use('/api/s3', s3_routes_1.default);
 // Routes
 app.use('/api/auth', auth_routes_1.default);
 app.use("/api/students", student_routes_1.default);
+app.use('/api/user', user_routes_1.default);
 app.use('/api', public_routes_1.default); // Public routes (cities, batches)
 app.use('/api/admin', admin_routes_1.default); // Teacher & Intern & admin
 app.use('/api/superadmin', superadmin_routes_1.default); // Superadmin ONLY
