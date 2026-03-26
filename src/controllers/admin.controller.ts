@@ -16,8 +16,6 @@ export const getCurrentAdminController = async (req: Request, res: Response) => 
                 message: "Admin not authenticated"
             });
         }
-        
-
         // Get full admin details from database
         const admin = await prisma.admin.findUnique({
             where: { id: adminInfo.id },
