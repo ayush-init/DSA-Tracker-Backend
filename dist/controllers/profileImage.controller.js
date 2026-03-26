@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProfileImage = exports.deleteProfileImage = exports.uploadProfileImage = void 0;
+exports.deleteProfileImage = exports.uploadProfileImage = void 0;
 const profileImage_service_1 = require("../services/profileImage.service");
 const uploadProfileImage = async (req, res) => {
     try {
@@ -52,25 +52,3 @@ const deleteProfileImage = async (req, res) => {
     }
 };
 exports.deleteProfileImage = deleteProfileImage;
-const getProfileImage = async (req, res) => {
-    try {
-        const studentId = req.user?.id;
-        if (!studentId) {
-            return res.status(401).json({ error: 'Student ID not found' });
-        }
-        const result = await profileImage_service_1.ProfileImageService.getProfileImage(studentId);
-        res.json({
-            success: true,
-            data: {
-                profileImageUrl: result.url
-            }
-        });
-    }
-    catch (error) {
-        console.error('Get profile image error:', error);
-        res.status(500).json({
-            error: error instanceof Error ? error.message : 'Failed to get profile image'
-        });
-    }
-};
-exports.getProfileImage = getProfileImage;

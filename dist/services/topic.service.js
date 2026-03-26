@@ -60,9 +60,47 @@ const createTopicService = async ({ topic_name, photo }) => {
 exports.createTopicService = createTopicService;
 const getAllTopicsService = async () => {
     const topics = await prisma_1.default.topic.findMany({
+        include: {
+            classes: {
+                include: {
+                    questionVisibility: {
+                        include: {
+                            question: {
+                                select: {
+                                    id: true,
+                                    topic_id: true,
+                                    question_name: true,
+                                    level: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
         orderBy: { created_at: "desc" },
     });
-    return topics;
+    // Transform topics to include counts and metadata
+    const transformedTopics = topics.map((topic) => ({
+        id: topic.id.toString(),
+        topic_name: topic.topic_name,
+        slug: topic.slug,
+        photo_url: topic.photo_url,
+        created_at: topic.created_at,
+        updated_at: topic.updated_at,
+        classCount: topic.classes.length,
+        questionCount: topic.classes.reduce((total, cls) => total + cls.questionVisibility.length, 0),
+        firstClassCreated_at: topic.classes.length > 0 ? topic.classes[0].created_at : null,
+        classes: topic.classes.map((cls) => ({
+            id: cls.id,
+            class_name: cls.class_name,
+            batch_id: cls.batch_id,
+            created_at: cls.created_at,
+            questionCount: cls.questionVisibility.length,
+            questionVisibility: cls.questionVisibility
+        }))
+    }));
+    return transformedTopics;
 };
 exports.getAllTopicsService = getAllTopicsService;
 const getTopicsForBatchService = async ({ batchId, query }) => {
@@ -491,8 +529,9 @@ const getTopicOverviewWithClassesSummaryService = async ({ studentId, batchId, t
             id: cls.id,
             class_name: cls.class_name,
             slug: cls.slug,
-            duration_minutes: cls.duration_minutes,
             description: cls.description,
+            pdf_url: cls.pdf_url,
+            classDate: cls.class_date,
             totalQuestions,
             solvedQuestions
         };
