@@ -78,18 +78,20 @@ export const getAdminLeaderboard = async (req: Request, res: Response) => {
                 total_solved: Number(entry.total_solved || 0),
                 score: Number(entry.score || 0),
                 global_rank: globalRank,
-                city_rank: cityRank,
-                last_calculated: entry.last_calculated
+                city_rank: cityRank
             };
         });
         
         return res.status(200).json({
             success: true,
-            page: result.pagination.page,
-            limit: result.pagination.limit,
-            total: result.pagination.total,
-            totalPages: result.pagination.totalPages,
-            leaderboard: formattedLeaderboard
+            data: {
+                leaderboard: formattedLeaderboard,
+                total: result.pagination.total,
+                page: result.pagination.page,
+                limit: result.pagination.limit,
+                available_cities: result.available_cities,
+                last_calculated: result.last_calculated
+            }
         });
 
     } catch (error) {
@@ -184,8 +186,7 @@ export const getStudentLeaderboard = async (req: Request, res: Response) => {
                 total_solved: Number(entry.total_solved || 0),
                 score: Number(entry.score || 0),
                 global_rank: globalRank,
-                city_rank: cityRank,
-                last_calculated: entry.last_calculated
+                city_rank: cityRank
             };
         });
         
@@ -221,7 +222,8 @@ export const getStudentLeaderboard = async (req: Request, res: Response) => {
                     easy_solved: easyCompletion,
                     medium_solved: mediumCompletion,
                     hard_solved: hardCompletion,
-                    total_solved: totalCompletion
+                    total_solved: studentEntry.total_solved, // Actual solved count
+                    total_assigned: studentEntry.hard_assigned + studentEntry.medium_assigned + studentEntry.easy_assigned // Total assigned
                 };
         } else {
             // Check if year mismatch
@@ -234,16 +236,19 @@ export const getStudentLeaderboard = async (req: Request, res: Response) => {
         
         return res.status(200).json({
             success: true,
-            top10: formattedTop10,
-            yourRank,
-            message: rankMessage,
-            filters: {
-                city: filters.city,
-                year: filters.year,
-                type: filters.type
+            data: {
+                top10: formattedTop10,
+                yourRank,
+                message: rankMessage,
+                filters: {
+                    city: filters.city,
+                    year: filters.year,
+                    type: filters.type
+                },
+                available_cities: top10Result.available_cities,
+                last_calculated: top10Result.last_calculated
             }
         });
-
     } catch (error) {
         console.error("Student leaderboard error:", error);
         return res.status(500).json({

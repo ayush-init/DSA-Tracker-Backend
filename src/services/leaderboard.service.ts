@@ -17,6 +17,68 @@ export const getAvailableCities = async () => {
   return cities.map(c => c.city_name);
 };
 
+// New function to get city-year mapping
+export const getCityYearMapping = async () => {
+  try {
+    const query = `
+      SELECT DISTINCT
+        c.city_name,
+        b.year
+      FROM "City" c
+      JOIN "Student" s ON s.city_id = c.id
+      JOIN "Batch" b ON b.id = s.batch_id
+      WHERE s.id IS NOT NULL
+        AND b.year IS NOT NULL
+      ORDER BY c.city_name, b.year DESC
+    `;
+    
+    console.log("Executing city-year mapping query:", query);
+    const results = await prisma.$queryRawUnsafe(query) as Array<{
+      city_name: string;
+      year: number;
+    }>;
+    
+    console.log("City-year mapping query results:", results);
+    
+    // Group by city
+    const cityMap: { [key: string]: number[] } = {};
+    results.forEach((row: any) => {
+      if (!cityMap[row.city_name]) {
+        cityMap[row.city_name] = [];
+      }
+      if (!cityMap[row.city_name].includes(row.year)) {
+        cityMap[row.city_name].push(row.year);
+      }
+    });
+    
+    // Get all available years
+    const availableYears = await getAvailableYears();
+    
+    // Convert to array format with "All Cities" included
+    const cityYearArray = [
+      { city_name: "All Cities", available_years: availableYears },
+      ...Object.entries(cityMap)
+        .map(([city, years]: [string, number[]]) => ({
+          city_name: city,
+          available_years: [...new Set(years)].sort((a: number, b: number) => b - a)
+        }))
+        .sort((a: any, b: any) => {
+          // Put "All Cities" first, then sort alphabetically
+          if (a.city_name === "All Cities") return -1;
+          if (b.city_name === "All Cities") return 1;
+          return a.city_name.localeCompare(b.city_name);
+        })
+    ];
+    
+    console.log("Final city-year array:", cityYearArray);
+    return cityYearArray;
+    
+  } catch (error) {
+    console.error("Error in getCityYearMapping:", error);
+    throw error;
+  }
+};
+
 
 export const getLeaderboardWithPagination = async (filters: any, pagination: any, search: string | null) => {
     try {
@@ -112,9 +174,9 @@ export const getLeaderboardWithPagination = async (filters: any, pagination: any
                 l.max_streak,
                 -- Dynamic score calculation
                 ROUND(
-                    (l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 20) +
-                    (l.medium_solved::numeric / NULLIF(b.medium_assigned,0) * 15) +
-                    (l.easy_solved::numeric / NULLIF(b.easy_assigned,0) * 10), 2
+                    (l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 20)*100 +
+                    (l.medium_solved::numeric / NULLIF(b.medium_assigned,0) * 15)*100 +
+                    (l.easy_solved::numeric / NULLIF(b.easy_assigned,0) * 10)*100, 2
                 ) AS score,
                 -- Completion percentages
                 ROUND((l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 100), 2) AS hard_completion,
@@ -167,6 +229,26 @@ export const getLeaderboardWithPagination = async (filters: any, pagination: any
             last_calculated: row.last_calculated
         }));
 
+        // 🆕 Get cities and years data with error handling
+        let availableCities = [];
+        let availableYears = [];
+        
+        try {
+          availableCities = await getCityYearMapping();
+        } catch (error) {
+          console.error("Error getting city-year mapping:", error);
+          // Fallback to empty array
+          availableCities = [{ city_name: "All Cities", available_years: [new Date().getFullYear()] }];
+        }
+        
+        try {
+          availableYears = await getAvailableYears();
+        } catch (error) {
+          console.error("Error getting available years:", error);
+          // Fallback to current year
+          availableYears = [new Date().getFullYear()];
+        }
+
         return {
             leaderboard: normalized,
             pagination: {
@@ -174,7 +256,10 @@ export const getLeaderboardWithPagination = async (filters: any, pagination: any
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit)
-            }
+            },
+            // 🆕 Additional data for frontend
+            available_cities: availableCities,
+            last_calculated: (leaderboardData as any[])[0]?.last_calculated || new Date().toISOString()
         };
 
     } catch (error) {
@@ -225,17 +310,18 @@ export const getStudentRankDirect = async (studentId: number, filters: any) => {
         }
         
         const query = `
-            SELECT ${rankField} as global_rank, ${cityRankField} as city_rank,
+            SELECT l.alltime_global_rank as global_rank, l.alltime_city_rank as city_rank,
                    s.name, s.username,s.profile_image_url, c.city_name, b.year,
                    l.hard_solved, l.medium_solved, l.easy_solved,
                    l.current_streak, l.max_streak,
                    l.hard_solved + l.medium_solved + l.easy_solved AS total_solved,
+                   b.hard_assigned, b.medium_assigned, b.easy_assigned,
                    ROUND(
                        (l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 20) +
                        (l.medium_solved::numeric / NULLIF(b.medium_assigned,0) * 15) +
                        (l.easy_solved::numeric / NULLIF(b.easy_assigned,0) * 10), 2
                    ) AS score,
-                   ROUND((l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 100), 2) AS hard_completion,
+                   ROUND((l.hard_solved::numeric / NULLIF(b.hard_assigned,0) * 100)*100, 2) AS hard_completion,
                    ROUND((l.medium_solved::numeric / NULLIF(b.medium_assigned,0) * 100), 2) AS medium_completion,
                    ROUND((l.easy_solved::numeric / NULLIF(b.easy_assigned,0) * 100), 2) AS easy_completion
             FROM "Leaderboard" l
@@ -246,7 +332,18 @@ export const getStudentRankDirect = async (studentId: number, filters: any) => {
         `;
         
         const result = await prisma.$queryRawUnsafe(query, ...params);
-        return (result as any[])[0] || null;
+        const studentData = (result as any[])[0] || null;
+        
+        // 🆕 Get cities and years data for student leaderboard
+        const availableCities = await getCityYearMapping();
+        const availableYears = await getAvailableYears();
+        
+        // Return student data along with cities/years info
+        return {
+            ...studentData,
+            available_cities: availableCities,
+            available_years: availableYears
+        };
         
     } catch (error) {
         console.error("Student rank lookup error:", error);
