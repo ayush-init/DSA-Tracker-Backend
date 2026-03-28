@@ -20,7 +20,7 @@ export const createBatchService = async ({
 }: CreateBatchInput) => {
 
   if (!batch_name || !year || !city_id) {
-    throw new ApiError(400, "All fields are required");
+    throw new ApiError(400, "All fields are required", [], "REQUIRED_FIELD");
   }
 
   const city = await prisma.city.findUnique({
@@ -28,7 +28,7 @@ export const createBatchService = async ({
   });
 
   if (!city) {
-    throw new ApiError(400, "City not found");
+    throw new ApiError(404, "City not found");
   }
 
   // Prevent duplicate batch name + year in same city
@@ -41,13 +41,13 @@ export const createBatchService = async ({
   });
 
   if (duplicate) {
-    throw new ApiError(400, 
+    throw new ApiError(409, 
                 "Batch with same name and year already exists in this city"
               );
   }
 
   if (!city.city_name) {
-    throw new ApiError(400, "City name is missing");
+    throw new ApiError(500, "City name is missing", [], "SERVER_ERROR");
   }
 
   const batch = await prisma.batch.create({
@@ -137,7 +137,7 @@ export const updateBatchService = async ({
   });
 
   if (!city) {
-    throw new ApiError(400, "City not found");
+    throw new ApiError(404, "City not found", [], "CITY_NOT_FOUND");
   }
 
   // Prevent duplicate inside same city

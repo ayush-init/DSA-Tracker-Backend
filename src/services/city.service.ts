@@ -10,7 +10,7 @@ export const createCityService = async ({
 }: CreateCityInput) => {
 
   if (!city_name) {
-    throw new ApiError(400, "City name is required");
+    throw new ApiError(400, "City name is required", [], "REQUIRED_FIELD");
   }
 
   const existingName = await prisma.city.findUnique({
@@ -18,7 +18,7 @@ export const createCityService = async ({
   });
 
   if (existingName) {
-    throw new ApiError(400, "City already exists");
+    throw new ApiError(400, "City already exists", [], "CITY_EXISTS");
   }
 
   const city = await prisma.city.create({
@@ -71,7 +71,7 @@ export const updateCityService = async ({
 }: UpdateCityInput) => {
 
   if (!city_name) {
-    throw new ApiError(400, "City name is required");
+    throw new ApiError(400, "City name is required", [], "VALIDATION_ERROR");
   }
 
   const existingCity = await prisma.city.findUnique({
@@ -79,7 +79,7 @@ export const updateCityService = async ({
   });
 
   if (!existingCity) {
-    throw new ApiError(400, "City not found");
+    throw new ApiError(404, "City not found", [], "CITY_NOT_FOUND");
   }
 
   const duplicateName = await prisma.city.findUnique({
@@ -87,7 +87,7 @@ export const updateCityService = async ({
   });
 
   if (duplicateName && duplicateName.id !== existingCity.id) {
-    throw new ApiError(400, "City name already in use");
+    throw new ApiError(400, "City name already in use", [], "CITY_EXISTS");
   }
 
   const updatedCity = await prisma.city.update({
@@ -113,7 +113,7 @@ export const deleteCityService = async ({
   });
 
   if (!city) {
-    throw new ApiError(400, "City not found");
+    throw new ApiError(404, "City not found", [], "CITY_NOT_FOUND");
   }
 
   const batchCount = await prisma.batch.count({
@@ -121,7 +121,7 @@ export const deleteCityService = async ({
   });
 
   if (batchCount > 0) {
-    throw new ApiError(400, "Cannot delete city with active batches");
+    throw new ApiError(400, "Cannot delete city with active batches", [], "VALIDATION_ERROR");
   }
 
   const studentCount = await prisma.student.count({
@@ -129,7 +129,7 @@ export const deleteCityService = async ({
   });
 
   if (studentCount > 0) {
-    throw new ApiError(400, "Cannot delete city with active students");
+    throw new ApiError(400, "Cannot delete city with active students", [], "VALIDATION_ERROR");
   }
 
   await prisma.city.delete({

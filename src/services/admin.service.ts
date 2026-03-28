@@ -65,7 +65,7 @@ export const createAdminService = async (adminData: any) => {
         });
 
         if (existingAdmin) {
-            throw new ApiError(400, 'Email already exists');
+            throw new ApiError(400, 'Email already exists', [], "USER_EXISTS");
         }
 
         // Validate city_id if provided
@@ -74,7 +74,7 @@ export const createAdminService = async (adminData: any) => {
                 where: { id: adminData.city_id }
             });
             if (!city) {
-                throw new ApiError(400, 'City not found');
+                throw new ApiError(404, 'City not found', [], "CITY_NOT_FOUND");
             }
         }
 
@@ -84,7 +84,7 @@ export const createAdminService = async (adminData: any) => {
                 where: { id: adminData.batch_id }
             });
             if (!batch) {
-                throw new ApiError(400, 'Batch not found');
+                throw new ApiError(404, 'Batch not found', [], "BATCH_NOT_FOUND");
             }
             // Automatically set city_id from batch if not explicitly provided
             if (!adminData.city_id) {
@@ -198,7 +198,7 @@ export const updateAdminService = async (id: number, updateData: any) => {
         });
 
         if (!existingAdmin) {
-            throw new ApiError(400, 'Admin not found');
+            throw new ApiError(404, 'Admin not found', [], "ADMIN_NOT_FOUND");
         }
 
         // Only allow specific field updates (name, email, role, batch_id, city_id)
@@ -207,7 +207,7 @@ export const updateAdminService = async (id: number, updateData: any) => {
         const invalidUpdates = Object.keys(updateData).filter(key => !allowedUpdates.includes(key));
         
         if (invalidUpdates.length > 0) {
-            throw new ApiError(400, `Only ${allowedUpdates.join(', ')} can be updated. Invalid fields: ${invalidUpdates.join(', ')}`);
+            throw new ApiError(400, `Only ${allowedUpdates.join(', ')} can be updated. Invalid fields: ${invalidUpdates.join(', ')}`, [], "VALIDATION_ERROR");
         }
 
         // Check for duplicate email if updating email
@@ -222,7 +222,7 @@ export const updateAdminService = async (id: number, updateData: any) => {
             });
 
             if (duplicateCheck) {
-                throw new ApiError(400, 'Email already exists');
+                throw new ApiError(400, 'Email already exists', [], "USER_EXISTS");
             }
         }
 

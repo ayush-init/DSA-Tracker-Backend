@@ -1,16 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma";
+import { ApiError } from "../utils/ApiError";
 
 export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      // No token provided, continue without authentication
-      return next();
-    }
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    // No token provided, continue without authentication
+    return next();
+  }
 
+  try {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     

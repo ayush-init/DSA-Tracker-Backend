@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt.util";
+import { ApiError } from "../utils/ApiError";
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   console.log("Auth Header:", authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "No token provided" });
+    throw new ApiError(401, "No token provided");
   }
   const token = authHeader.split(" ")[1];
   console.log("Token:", token);
@@ -19,6 +20,6 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
     next();
   } catch (error) {
     console.error("Token verification error:", error);
-    return res.status(401).json({ error: "Invalid token" });
+    throw new ApiError(401, "Invalid token");
   }
 };
