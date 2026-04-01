@@ -14,7 +14,7 @@ export const createTopic = asyncHandler(async (
   const photo = req.file;
 
   if (!topic_name) {
-    throw new ApiError(400, "Topic name required");
+    throw new ApiError(400, "Topic name required", [], "REQUIRED_FIELD");
   }
 
   const topic = await createTopicService({ topic_name, photo });
@@ -53,7 +53,7 @@ export const updateTopic = asyncHandler(async (req: Request, res: Response) => {
   const photo = req.file;
 
   if (!topic_name) {
-    throw new ApiError(400, "Topic name required");
+    throw new ApiError(400, "Topic name required", [], "REQUIRED_FIELD");
   }
 
   const topic = await updateTopicService({
@@ -85,7 +85,7 @@ export const createTopicsBulk = asyncHandler(async (req: Request, res: Response)
   const { topics } = req.body;
 
   if (!topics || !Array.isArray(topics)) {
-    throw new ApiError(400, "Topics must be an array");
+    throw new ApiError(400, "Topics must be an array", [], "INVALID_INPUT");
   }
 
   // Slug generate helper
@@ -117,7 +117,7 @@ export const getTopicsWithBatchProgress = asyncHandler(async (req: Request, res:
   const studentId = student?.id;
 
   if (!studentId || !batchId) {
-    throw new ApiError(400, "Student authentication required");
+    throw new ApiError(401, "Student authentication required", [], "UNAUTHORIZED");
   }
 
   const topics = await getTopicsWithBatchProgressService({
@@ -141,7 +141,7 @@ export const getTopicOverviewWithClassesSummary = asyncHandler(async (req: Reque
   const slug = Array.isArray(topicSlug) ? topicSlug[0] : topicSlug;
 
   if (!studentId || !batchId || !slug) {
-    throw new ApiError(400, "Student authentication and topic slug required");
+    throw new ApiError(400, "Student authentication and topic slug required", [], "REQUIRED_FIELD");
   }
 
   const topicOverview = await getTopicOverviewWithClassesSummaryService({
@@ -170,7 +170,7 @@ export const getTopicProgressByUsername = asyncHandler(async (
   });
 
   if (!student) {
-    throw new ApiError(404, "Student not found");
+    throw new ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
   }
 
   // Get student progress to calculate solved questions

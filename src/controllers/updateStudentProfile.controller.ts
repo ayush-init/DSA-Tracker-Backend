@@ -15,7 +15,7 @@ export const updateStudentProfile = asyncHandler(async (req: Request, res: Respo
             });
 
             if (!currentStudent) {
-              throw new ApiError(404, "Student not found");
+              throw new ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
             }
 
             // Build update data - only include fields that are provided
@@ -55,13 +55,13 @@ export const updateStudentProfile = asyncHandler(async (req: Request, res: Respo
             if (error.code === "P2002") {
               const field = error.meta?.target as string[] | undefined;
               if (field?.includes("username")) {
-                throw new ApiError(400, "Username already exists");
+                throw new ApiError(409, "Username already exists", [], "USERNAME_TAKEN");
               }
               if (field?.includes("email")) {
-                throw new ApiError(400, "Email already exists");
+                throw new ApiError(409, "Email already exists", [], "EMAIL_EXISTS");
               }
             }
             
-            throw new ApiError(500, "Failed to update profile");
+            throw new ApiError(500, "Failed to update profile", [], "INTERNAL_SERVER_ERROR");
           }
         });

@@ -144,14 +144,14 @@ export const loginStudent = asyncHandler(async (req: Request, res: Response) => 
   });
 
   if (!student || !student.password_hash) {
-    throw new ApiError(401, 'Invalid credentials');
+    throw new ApiError(401, 'Invalid credentials', [], "INVALID_CREDENTIALS");
   }
 
   // Compare password
   const isValidPassword = await comparePassword(password, student.password_hash);
 
   if (!isValidPassword) {
-    throw new ApiError(401, 'Invalid credentials');
+    throw new ApiError(401, 'Invalid credentials', [], "INVALID_CREDENTIALS");
   }
 
   const accessToken = generateAccessToken({
@@ -228,7 +228,7 @@ export const registerAdmin = asyncHandler(async (req: Request, res: Response) =>
   }
 
   if (req.user?.role !== "SUPERADMIN") {
-    throw new ApiError(403, "Only SuperAdmin can create admin");
+    throw new ApiError(403, "Only SuperAdmin can create admin", [], "FORBIDDEN");
   }
 
   if (role !== "TEACHER" && role !== "INTERN" && role !== "SUPERADMIN") {
@@ -309,13 +309,13 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!admin || !admin.password_hash) {
-    throw new ApiError(401, 'Invalid credentials');
+    throw new ApiError(401, 'Invalid credentials', [], "INVALID_CREDENTIALS");
   }
 
   const isValidPassword = await comparePassword(password, admin.password_hash);
 
   if (!isValidPassword) {
-    throw new ApiError(401, 'Invalid credentials');
+    throw new ApiError(401, 'Invalid credentials', [], "INVALID_CREDENTIALS");
   }
 
   const accessToken = generateAccessToken({
@@ -397,7 +397,7 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response) => 
   }
 
   if (!user || user.refresh_token !== refreshToken) {
-    throw new ApiError(403, 'Invalid refresh token');
+    throw new ApiError(403, 'Invalid refresh token', [], "INVALID_TOKEN");
   }
 
   const newAccessToken = generateAccessToken({
@@ -472,7 +472,7 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!student) {
-    throw new ApiError(403, "Student not registered by admin");
+    throw new ApiError(422, "Student not registered by admin", [], "STUDENT_NOT_REGISTERED");
   }
 
   // Update google_id if not set
@@ -507,7 +507,7 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
     where: { id: student.id },
     data: { refresh_token: refreshToken },
   });
- 
+
   // For Google Auth
   // Set refresh token in HTTP-only cookie
   res.cookie('refreshToken', refreshToken, {
@@ -529,6 +529,13 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
       username: student.username,
       city: student.city,
       batch: student.batch,
+      leetcode_id: student.leetcode_id,
+      gfg_id: student.gfg_id,
+      cityId: student.city_id,
+      cityName: student.city?.city_name || null,
+      batchId: student.batch_id,
+      batchName: student.batch?.batch_name || null,
+      batchSlug: student.batch?.slug || null
     },
   });
 });
@@ -598,10 +605,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   }
 
   if (!user) {
-    console.log(`User not found for email: ${email}`);
-    return res.json({
-      message: 'If an account with this email exists, an OTP has been sent'
-    });
+    throw new ApiError(404, 'No account found with this email address');
   }
 
   // Generate and save OTP
@@ -681,6 +685,15 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   if (!isValidOTP) {
     throw new ApiError(400, 'Invalid or expired OTP');
   }
+
+  // Mark OTP as used since password was successfully reset
+  await prisma.passwordResetOTP.updateMany({
+    where: {
+      email,
+      is_used: false
+    },
+    data: { is_used: true }
+  });
 
   // Find user and update password
   let user = null;

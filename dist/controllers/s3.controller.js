@@ -8,7 +8,7 @@ exports.uploadTestFile = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     try {
         // Check if file was uploaded
         if (!req.file) {
-            throw new ApiError_1.ApiError(400, 'No file uploaded. Please provide a file with field name "file"');
+            throw new ApiError_1.ApiError(400, 'No file uploaded. Please provide a file with field name "file"', [], "REQUIRED_FIELD");
         }
         // Upload file to S3
         const result = await s3_service_1.S3Service.uploadFile(req.file, 'test-uploads');
@@ -29,7 +29,7 @@ exports.uploadTestFile = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         if (error instanceof ApiError_1.ApiError)
             throw error;
         console.error('Upload controller error:', error);
-        throw new ApiError_1.ApiError(500, error instanceof Error ? error.message : 'Failed to upload file');
+        throw new ApiError_1.ApiError(500, error instanceof Error ? error.message : 'Failed to upload file', [], "FILE_UPLOAD_ERROR");
     }
 });
 exports.testS3Connection = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
@@ -50,6 +50,6 @@ exports.testS3Connection = (0, asyncHandler_1.asyncHandler)(async (req, res) => 
         if (error instanceof ApiError_1.ApiError)
             throw error;
         console.error('S3 test error:', error);
-        throw new ApiError_1.ApiError(500, 'S3 configuration test failed');
+        throw new ApiError_1.ApiError(500, 'S3 configuration test failed', [], "EXTERNAL_SERVICE_ERROR");
     }
 });

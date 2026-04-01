@@ -9,11 +9,11 @@ exports.bulkUploadQuestions = (0, asyncHandler_1.asyncHandler)(async (req, res) 
         if (!req.file) {
             throw new ApiError_1.ApiError(400, "CSV file is required");
         }
-        const { topicId } = req.body;
-        if (!topicId) {
+        const { topic_id } = req.body;
+        if (!topic_id) {
             throw new ApiError_1.ApiError(400, "Topic ID is required");
         }
-        const result = await (0, questionBulk_service_1.bulkUploadQuestionsService)(req.file.buffer, Number(topicId));
+        const result = await (0, questionBulk_service_1.bulkUploadQuestionsService)(req.file.buffer, Number(topic_id));
         return res.json({
             message: "Bulk upload successful",
             ...result,

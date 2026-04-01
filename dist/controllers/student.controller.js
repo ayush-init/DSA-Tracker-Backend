@@ -13,7 +13,7 @@ const ApiError_1 = require("../utils/ApiError");
 exports.getCurrentStudent = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const studentId = req.user?.id;
     if (!studentId) {
-        throw new ApiError_1.ApiError(401, "Student not authenticated");
+        throw new ApiError_1.ApiError(401, "Student not authenticated", [], "UNAUTHORIZED");
     }
     const student = await prisma_1.default.student.findUnique({
         where: { id: studentId },
@@ -41,7 +41,7 @@ exports.getCurrentStudent = (0, asyncHandler_1.asyncHandler)(async (req, res) =>
         }
     });
     if (!student) {
-        throw new ApiError_1.ApiError(404, "Student not found");
+        throw new ApiError_1.ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
     }
     return res.status(200).json({
         success: true,
@@ -70,7 +70,7 @@ exports.deleteStudentDetails = (0, asyncHandler_1.asyncHandler)(async (req, res)
     const { id } = req.params;
     const studentId = Number(id);
     if (isNaN(studentId)) {
-        throw new ApiError_1.ApiError(400, "Invalid student id");
+        throw new ApiError_1.ApiError(400, "Invalid student id", [], "INVALID_INPUT");
     }
     await (0, student_service_2.deleteStudentDetailsService)(studentId);
     return res.status(200).json({
@@ -97,7 +97,7 @@ exports.createStudentController = (0, asyncHandler_1.asyncHandler)(async (req, r
 exports.addStudentProgressController = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { student_id, question_id } = req.body;
     if (!student_id || !question_id) {
-        throw new ApiError_1.ApiError(400, "student_id and question_id are required");
+        throw new ApiError_1.ApiError(400, "student_id and question_id are required", [], "REQUIRED_FIELD");
     }
     const progress = await (0, student_service_1.addStudentProgressService)(Number(student_id), Number(question_id));
     return res.status(201).json({

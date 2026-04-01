@@ -54,7 +54,7 @@ router.get("/questions", question_controller_1.getAllQuestions);
 router.patch("/questions/:id", role_middleware_1.isTeacherOrAbove, question_controller_1.updateQuestion);
 router.delete("/questions/:id", role_middleware_1.isTeacherOrAbove, question_controller_1.deleteQuestion);
 // Bulk Operation for Question 
-router.post("/questions/bulk-upload", role_middleware_1.isTeacherOrAbove, upload_middleware_1.upload.single("file"), questionBulk_controller_1.bulkUploadQuestions);
+router.post("/questions/bulk-upload", role_middleware_1.isAdmin, role_middleware_1.isTeacherOrAbove, upload_middleware_1.upload.single("file"), questionBulk_controller_1.bulkUploadQuestions);
 // Download Batch Report
 router.post("/student/reportdownload", csv_controller_1.downloadBatchReportController);
 // Bulk Operation for Studenta 
@@ -69,7 +69,7 @@ router.patch("/students/:id", role_middleware_1.isTeacherOrAbove, role_middlewar
 router.delete("/students/:id", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.deleteStudentDetails);
 router.get("/students", student_controller_1.getAllStudentsController);
 // router.get("/students/:username", getStudentReportController);
-router.post("/students", role_middleware_1.isTeacherOrAbove, student_controller_1.createStudentController);
+router.post("/students", role_middleware_1.isAdmin, role_middleware_1.isTeacherOrAbove, student_controller_1.createStudentController);
 router.post("/students/progress", role_middleware_1.isTeacherOrAbove, role_middleware_1.isAdmin, student_controller_1.addStudentProgressController);
 router.get("/test/leetcode/:username", test_controller_1.testLeetcode);
 router.get("/test/gfg/:username", test_controller_1.testGfg);

@@ -3,7 +3,7 @@ import { verifyToken } from "../middlewares/auth.middleware";
 import { isAdmin, isTeacherOrAbove } from "../middlewares/role.middleware";
 import { extractAdminInfo } from "../middlewares/admin.middleware";
 import { resolveBatch } from "../middlewares/batch.middleware";
-import { getAllCities } from "../controllers/city.controller";
+import {  getAllCities } from "../controllers/city.controller";
 import { createBatch, getAllBatches } from "../controllers/batch.controller";
 import { createTopic, deleteTopic, getAllTopics, getTopicsForBatch, updateTopic } from "../controllers/topic.controller";
 import { createQuestion, deleteQuestion, getAllQuestions, getAssignedQuestionsController, updateQuestion } from "../controllers/question.controller";
@@ -19,7 +19,6 @@ import { manualSync } from "../controllers/progress.controller";
 import { testGfg, testLeetcode } from "../controllers/test.controller";
 import { addStudentProgressController, createStudentController, deleteStudentDetails, getAllStudentsController, getStudentReportController, updateStudentDetails } from "../controllers/student.controller";
 import { bulkStudentUploadController } from "../controllers/bulk.controller";
-
 
 // import {
 //   getStudentsForBatch,
@@ -46,8 +45,10 @@ router.get("/me", getCurrentAdminController);
 // Cities
 router.get("/cities", getAllCities);
 
+
 // Batches
 router.get("/batches", getAllBatches);
+
 
 // Global Topics
 router.get("/topics", getAllTopics);
@@ -75,7 +76,7 @@ router.delete(
 
 // Bulk Operation for Question 
 router.post(
-  "/questions/bulk-upload",
+  "/questions/bulk-upload",isAdmin,
   isTeacherOrAbove,
   upload.single("file"),
   bulkUploadQuestions
@@ -109,7 +110,7 @@ router.delete("/students/:id", isTeacherOrAbove, isAdmin, deleteStudentDetails);
 
 router.get("/students", getAllStudentsController);
 // router.get("/students/:username", getStudentReportController);
-router.post("/students", isTeacherOrAbove, createStudentController);
+router.post("/students", isAdmin,isTeacherOrAbove, createStudentController);
 
 router.post("/students/progress", isTeacherOrAbove, isAdmin, addStudentProgressController);
 router.get("/test/leetcode/:username", testLeetcode);

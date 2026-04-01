@@ -10,32 +10,32 @@ exports.assignQuestionsToClass = (0, asyncHandler_1.asyncHandler)(async (req, re
         const topicSlugParam = req.params.topicSlug;
         const classSlug = req.params.classSlug;
         if (typeof topicSlugParam !== "string") {
-            throw new ApiError_1.ApiError(400, "Invalid topic slug");
+            throw new ApiError_1.ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
         }
         if (typeof classSlug !== "string") {
-            throw new ApiError_1.ApiError(400, "Invalid class slug");
+            throw new ApiError_1.ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
         }
         const { question_ids } = req.body;
         // Validation 1: Check if question_ids is provided
         if (!question_ids) {
-            throw new ApiError_1.ApiError(400, "question_ids field is required");
+            throw new ApiError_1.ApiError(400, "question_ids field is required", [], "REQUIRED_FIELD");
         }
         // Validation 2: Check if question_ids is an array
         if (!Array.isArray(question_ids)) {
-            throw new ApiError_1.ApiError(400, "question_ids must be an array");
+            throw new ApiError_1.ApiError(400, "question_ids must be an array", [], "INVALID_INPUT");
         }
         // Validation 3: Check if array is not empty
         if (question_ids.length === 0) {
-            throw new ApiError_1.ApiError(400, "question_ids array cannot be empty");
+            throw new ApiError_1.ApiError(400, "question_ids array cannot be empty", [], "INVALID_INPUT");
         }
         // Validation 4: Check if all elements are numbers
         if (!question_ids.every(id => typeof id === 'number' && id > 0)) {
-            throw new ApiError_1.ApiError(400, "All question_ids must be positive numbers");
+            throw new ApiError_1.ApiError(400, "All question_ids must be positive numbers", [], "INVALID_INPUT");
         }
         // Validation 5: Check for duplicate question IDs in request
         const duplicateIds = question_ids.filter((id, index) => question_ids.indexOf(id) !== index);
         if (duplicateIds.length > 0) {
-            throw new ApiError_1.ApiError(400, `Duplicate question IDs found in request: ${duplicateIds.join(', ')}`);
+            throw new ApiError_1.ApiError(400, `Duplicate question IDs found in request: ${duplicateIds.join(', ')}`, [], "INVALID_INPUT");
         }
         const result = await (0, questionVisibility_service_1.assignQuestionsToClassService)({
             batchId: batch.id,
@@ -51,7 +51,7 @@ exports.assignQuestionsToClass = (0, asyncHandler_1.asyncHandler)(async (req, re
     catch (error) {
         if (error instanceof ApiError_1.ApiError)
             throw error;
-        throw new ApiError_1.ApiError(400, error.message);
+        throw new ApiError_1.ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
     }
 });
 exports.getAssignedQuestionsOfClass = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
@@ -60,10 +60,10 @@ exports.getAssignedQuestionsOfClass = (0, asyncHandler_1.asyncHandler)(async (re
         const topicSlugParam = req.params.topicSlug;
         const classSlug = req.params.classSlug;
         if (typeof topicSlugParam !== "string") {
-            throw new ApiError_1.ApiError(400, "Invalid topic slug");
+            throw new ApiError_1.ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
         }
         if (typeof classSlug !== "string") {
-            throw new ApiError_1.ApiError(400, "Invalid class slug");
+            throw new ApiError_1.ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
         }
         // Extract pagination and search parameters
         const { page = '1', limit = '25', search = '' } = req.query;
@@ -87,7 +87,7 @@ exports.getAssignedQuestionsOfClass = (0, asyncHandler_1.asyncHandler)(async (re
     catch (error) {
         if (error instanceof ApiError_1.ApiError)
             throw error;
-        throw new ApiError_1.ApiError(400, error.message);
+        throw new ApiError_1.ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
     }
 });
 exports.removeQuestionFromClass = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
@@ -97,17 +97,17 @@ exports.removeQuestionFromClass = (0, asyncHandler_1.asyncHandler)(async (req, r
         const classSlug = req.params.classSlug;
         const questionIdParam = req.params.questionId;
         if (typeof questionIdParam !== "string") {
-            throw new ApiError_1.ApiError(400, "Invalid question ID");
+            throw new ApiError_1.ApiError(400, "Invalid question ID", [], "INVALID_INPUT");
         }
         const questionId = parseInt(questionIdParam);
         if (typeof topicSlugParam !== "string") {
-            throw new ApiError_1.ApiError(400, "Invalid topic slug");
+            throw new ApiError_1.ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
         }
         if (typeof classSlug !== "string") {
-            throw new ApiError_1.ApiError(400, "Invalid class slug");
+            throw new ApiError_1.ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
         }
         if (isNaN(questionId)) {
-            throw new ApiError_1.ApiError(400, "Invalid question ID");
+            throw new ApiError_1.ApiError(400, "Invalid question ID", [], "INVALID_INPUT");
         }
         await (0, questionVisibility_service_1.removeQuestionFromClassService)({
             batchId: batch.id,
@@ -122,7 +122,7 @@ exports.removeQuestionFromClass = (0, asyncHandler_1.asyncHandler)(async (req, r
     catch (error) {
         if (error instanceof ApiError_1.ApiError)
             throw error;
-        throw new ApiError_1.ApiError(400, error.message);
+        throw new ApiError_1.ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
     }
 });
 // Student-specific controller - get all questions with filters for student's batch

@@ -61,7 +61,7 @@ export const validateOTP = async (email: string, inputOTP: string): Promise<bool
     // Mark OTP as used
     await prisma.passwordResetOTP.update({
       where: { id: otpRecord.id },
-      data: { is_used: true }
+      data: { is_used: false }
     });
   }
 

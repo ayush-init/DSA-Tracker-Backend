@@ -180,7 +180,7 @@ const getPublicStudentProfileService = async (username) => {
         }
     });
     if (!student) {
-        throw new ApiError_1.ApiError(400, "Student not found");
+        throw new ApiError_1.ApiError(404, "Student not found");
     }
     const studentId = student.id;
     // Get batch question counts for all levels

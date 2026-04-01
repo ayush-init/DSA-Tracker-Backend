@@ -5,10 +5,10 @@ import { ApiError } from "../utils/ApiError";
 
 export const checkUsernameAvailability = asyncHandler(async (req: Request, res: Response) => {
           try {
-            const { username } = req.query;
+            const { username, userId } = req.query;
 
             if (!username || typeof username !== 'string') {
-              throw new ApiError(400, "Username parameter is required");
+              throw new ApiError(400, "Username parameter is required", [], "REQUIRED_FIELD");
             }
 
             // Trim whitespace
@@ -19,9 +19,16 @@ export const checkUsernameAvailability = asyncHandler(async (req: Request, res: 
               return res.json({ available: false });
             }
 
-            // Check if username already exists
+            // Check if username already exists, excluding current user if userId provided
+            const whereClause: any = { username: trimmedUsername };
+            
+            // If userId is provided, exclude current user from the check
+            if (userId && typeof userId === 'string') {
+              whereClause.id = { not: userId };
+            }
+
             const existingStudent = await prisma.student.findUnique({
-              where: { username: trimmedUsername },
+              where: whereClause,
               select: { id: true }
             });
 
@@ -31,7 +38,7 @@ export const checkUsernameAvailability = asyncHandler(async (req: Request, res: 
           } catch (error) {
     if (error instanceof ApiError) throw error;
             console.error("Error checking username availability:", error);
-            throw new ApiError(500, "Failed to check username availability");
+            throw new ApiError(500, "Failed to check username availability", [], "INTERNAL_SERVER_ERROR");
           }
         });
 
@@ -47,12 +54,12 @@ export const updateUsername = asyncHandler(async (req: Request, res: Response) =
             console.log('Request body:', { username });
 
             if (!username) {
-              throw new ApiError(400, "Username is required");
+              throw new ApiError(400, "Username is required", [], "REQUIRED_FIELD");
             }
 
             if (!studentId) {
               console.log('No student ID found in request');
-              throw new ApiError(401, "Student not authenticated");
+              throw new ApiError(401, "Student not authenticated", [], "UNAUTHORIZED");
             }
 
             // Check if username is already taken
@@ -64,7 +71,7 @@ export const updateUsername = asyncHandler(async (req: Request, res: Response) =
             });
 
             if (existingStudent) {
-              throw new ApiError(400, "Username is already taken");
+              throw new ApiError(409, "Username is already taken", [], "USERNAME_TAKEN");
             }
 
             // Update username
@@ -88,6 +95,6 @@ export const updateUsername = asyncHandler(async (req: Request, res: Response) =
           } catch (error) {
     if (error instanceof ApiError) throw error;
             console.error("Error updating username:", error);
-            throw new ApiError(500, "Failed to update username");
+            throw new ApiError(500, "Failed to update username", [], "INTERNAL_SERVER_ERROR");
           }
         });

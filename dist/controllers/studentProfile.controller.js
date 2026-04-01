@@ -8,7 +8,7 @@ exports.getStudentProfile = (0, asyncHandler_1.asyncHandler)(async (req, res) =>
     try {
         const studentId = req.user?.id;
         if (!studentId) {
-            throw new ApiError_1.ApiError(401, "Student ID not found");
+            throw new ApiError_1.ApiError(500, "Failed to get student profile", [], "INTERNAL_SERVER_ERROR");
         }
         const profile = await (0, studentProfile_service_1.getStudentProfileService)(studentId);
         res.json(profile);
@@ -17,7 +17,7 @@ exports.getStudentProfile = (0, asyncHandler_1.asyncHandler)(async (req, res) =>
         if (error instanceof ApiError_1.ApiError)
             throw error;
         console.error("Profile error:", error);
-        throw new ApiError_1.ApiError(500, error instanceof Error ? error.message : "Failed to get student profile");
+        throw new ApiError_1.ApiError(500, error instanceof Error ? error.message : "Failed to get student profile", [], "INTERNAL_SERVER_ERROR");
     }
 });
 exports.getPublicStudentProfile = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
@@ -25,7 +25,7 @@ exports.getPublicStudentProfile = (0, asyncHandler_1.asyncHandler)(async (req, r
         const { username } = req.params;
         const currentUserId = req.user?.id; // From optional auth middleware
         if (!username || Array.isArray(username)) {
-            throw new ApiError_1.ApiError(400, "Username is required");
+            throw new ApiError_1.ApiError(400, "Username is required", [], "REQUIRED_FIELD");
         }
         const profile = await (0, studentProfile_service_1.getPublicStudentProfileService)(username);
         // Add canEdit flag if current user is viewing their own profile
@@ -36,6 +36,6 @@ exports.getPublicStudentProfile = (0, asyncHandler_1.asyncHandler)(async (req, r
         if (error instanceof ApiError_1.ApiError)
             throw error;
         console.error("Public profile error:", error);
-        throw new ApiError_1.ApiError(500, error instanceof Error ? error.message : "Failed to get public student profile");
+        throw new ApiError_1.ApiError(500, "Failed to get public student profile", [], "INTERNAL_SERVER_ERROR");
     }
 });

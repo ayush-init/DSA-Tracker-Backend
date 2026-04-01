@@ -29,9 +29,9 @@ router.post('/admin/logout', logoutAdmin);
 router.post('/refresh-token',   refreshToken);
 
 // ===== PASSWORD RESET (Public) =====
-router.post('/forgot-password', passwordResetLimiter, forgotPassword);
-router.post('/verify-otp', otpLimiter, verifyOtp);
-router.post('/reset-password', otpLimiter, resetPassword);
+router.post('/forgot-password',  forgotPassword);
+router.post('/verify-otp',  verifyOtp);
+router.post('/reset-password',  resetPassword);
 
 // ===== GOOGLE OAUTH (Public) =====
 router.post('/google-login',   googleLogin);

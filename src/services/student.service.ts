@@ -2,6 +2,7 @@ import prisma from "../config/prisma";
 import bcrypt from "bcryptjs";
 import { generateUsername } from "../utils/usernameGenerator";
 import { Prisma } from "@prisma/client";
+import { mapDatabaseError, HTTP_STATUS } from '../utils/errorMapper';
 import { ApiError } from "../utils/ApiError";
 
 // ==============================
@@ -412,16 +413,16 @@ export const updateStudentDetailsService = async (id: number, body: any) => {
     } catch (error: any) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             if (error.code === "P2025") {
-                throw new ApiError(404, "Student not found");
+                throw new ApiError(HTTP_STATUS.NOT_FOUND, "Student not found");
             }
             if (error.code === "P2002") {
-                throw new ApiError(400, "Email, Username or Enrollment ID already exists");
+                throw new ApiError(HTTP_STATUS.CONFLICT, "Email, Username or Enrollment ID already exists");
             }
             if (error.code === "P2003") {
-                throw new ApiError(400, "Invalid city or batch reference");
+                throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid city or batch reference");
             }
         }
-        throw new ApiError(500, "Failed to update student");
+        throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to update student");
     }
 };
 
@@ -439,7 +440,7 @@ export const deleteStudentDetailsService = async (id: number) => {
         });
 
         if (!student) {
-            throw new ApiError(400, "Student not found");
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, "Student not found");
         }
 
         await prisma.student.delete({
@@ -451,10 +452,10 @@ export const deleteStudentDetailsService = async (id: number) => {
     } catch (error: any) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             if (error.code === "P2025") {
-                throw new ApiError(404, "Student not found");
+                throw new ApiError(HTTP_STATUS.NOT_FOUND, "Student not found");
             }
         }
-        throw new ApiError(500, "Failed to delete student");
+        throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to delete student");
     }
 };
 
@@ -480,13 +481,14 @@ export const createStudentService = async (data: any) => {
 
         // Only require name and email, username will be generated if not provided
         if (!name || !email) {
-            throw new ApiError(400, "Name and email are required");
+            throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Name and email are required");
         }
 
         // Generate username if not provided
         let finalUsername = username;
         if (!finalUsername) {
-            finalUsername = await generateUsername(name, enrollment_id);
+            const usernameResult = await generateUsername(name, enrollment_id);
+            finalUsername = usernameResult.finalUsername;
         }
 
         // batch exist check karo
@@ -499,7 +501,7 @@ export const createStudentService = async (data: any) => {
         });
 
         if (!batch) {
-            throw new ApiError(400, "Batch not found");
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, "Batch not found");
         }
 
         let password_hash = null;
@@ -533,26 +535,26 @@ export const createStudentService = async (data: any) => {
                 const field = error.meta?.target as string[] | undefined;
 
                 if (field?.includes("email"))
-                    throw new ApiError(400, "Email already exists");
+                    throw new ApiError(HTTP_STATUS.CONFLICT, "Email already exists", [], "EMAIL_ALREADY_EXISTS");
 
                 if (field?.includes("username"))
-                    throw new ApiError(400, "Username already exists");
+                    throw new ApiError(HTTP_STATUS.CONFLICT, "Username already exists");
 
                 if (field?.includes("enrollment_id"))
-                    throw new ApiError(400, "Enrollment ID already exists");
+                    throw new ApiError(HTTP_STATUS.CONFLICT, "Enrollment ID already exists");
 
                 if (field?.includes("google_id"))
-                    throw new ApiError(400, "Google account already linked");
+                    throw new ApiError(HTTP_STATUS.CONFLICT, "Google account already linked");
 
-                throw new ApiError(400, "Duplicate field detected");
+                throw new ApiError(HTTP_STATUS.CONFLICT, "Duplicate field detected");
             }
 
             if (error.code === "P2003") {
-                throw new ApiError(400, "Invalid batch reference");
+                throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid batch reference");
             }
         }
 
-        throw new ApiError(400, "Failed to create student");
+        throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to create student");
     }
 };
 
@@ -568,7 +570,7 @@ export const addStudentProgressService = async (
         });
 
         if (!student) {
-            throw new ApiError(400, "Student not found");
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, "Student not found");
         }
 
         // check question
@@ -577,7 +579,7 @@ export const addStudentProgressService = async (
         });
 
         if (!question) {
-            throw new ApiError(400, "Question not found");
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, "Question not found");
         }
 
         // create progress
@@ -596,16 +598,16 @@ export const addStudentProgressService = async (
 
             // duplicate solved question
             if (error.code === "P2002") {
-                throw new ApiError(400, "Student already solved this question");
+                throw new ApiError(HTTP_STATUS.CONFLICT, "Student already solved this question");
             }
 
             // foreign key error
             if (error.code === "P2003") {
-                throw new ApiError(400, "Invalid student or question reference");
+                throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Invalid student or question reference");
             }
 
         }
 
-        throw new ApiError(400, "Failed to add student progress");
+        throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to add student progress");
     }
 };

@@ -195,7 +195,7 @@ export const getPublicStudentProfileService = async (username: string) => {
     });
 
     if (!student) {
-        throw new ApiError(400, "Student not found");
+        throw new ApiError(404, "Student not found");
     }
 
     const studentId = student.id;
