@@ -13,7 +13,7 @@ exports.createTopic = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const topic_name = req.body?.topic_name;
     const photo = req.file;
     if (!topic_name) {
-        throw new ApiError_1.ApiError(400, "Topic name required");
+        throw new ApiError_1.ApiError(400, "Topic name required", [], "REQUIRED_FIELD");
     }
     const topic = await (0, topic_service_1.createTopicService)({ topic_name, photo });
     return res.status(201).json({
@@ -41,7 +41,7 @@ exports.updateTopic = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const removePhoto = req.body?.removePhoto;
     const photo = req.file;
     if (!topic_name) {
-        throw new ApiError_1.ApiError(400, "Topic name required");
+        throw new ApiError_1.ApiError(400, "Topic name required", [], "REQUIRED_FIELD");
     }
     const topic = await (0, topic_service_1.updateTopicService)({
         topicSlug,
@@ -66,7 +66,7 @@ exports.deleteTopic = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 exports.createTopicsBulk = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { topics } = req.body;
     if (!topics || !Array.isArray(topics)) {
-        throw new ApiError_1.ApiError(400, "Topics must be an array");
+        throw new ApiError_1.ApiError(400, "Topics must be an array", [], "INVALID_INPUT");
     }
     // Slug generate helper
     const generateSlug = (name) => name.toLowerCase().trim().replace(/\s+/g, "-");
@@ -90,7 +90,7 @@ exports.getTopicsWithBatchProgress = (0, asyncHandler_1.asyncHandler)(async (req
     const batchId = req.batchId;
     const studentId = student?.id;
     if (!studentId || !batchId) {
-        throw new ApiError_1.ApiError(400, "Student authentication required");
+        throw new ApiError_1.ApiError(401, "Student authentication required", [], "UNAUTHORIZED");
     }
     const topics = await (0, topic_service_1.getTopicsWithBatchProgressService)({
         studentId,
@@ -108,7 +108,7 @@ exports.getTopicOverviewWithClassesSummary = (0, asyncHandler_1.asyncHandler)(as
     // Ensure topicSlug is a string (not string array)
     const slug = Array.isArray(topicSlug) ? topicSlug[0] : topicSlug;
     if (!studentId || !batchId || !slug) {
-        throw new ApiError_1.ApiError(400, "Student authentication and topic slug required");
+        throw new ApiError_1.ApiError(400, "Student authentication and topic slug required", [], "REQUIRED_FIELD");
     }
     const topicOverview = await (0, topic_service_1.getTopicOverviewWithClassesSummaryService)({
         studentId,
@@ -129,7 +129,7 @@ exports.getTopicProgressByUsername = (0, asyncHandler_1.asyncHandler)(async (req
         }
     });
     if (!student) {
-        throw new ApiError_1.ApiError(404, "Student not found");
+        throw new ApiError_1.ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
     }
     // Get student progress to calculate solved questions
     const studentProgress = await prisma_1.default.studentProgress.findMany({

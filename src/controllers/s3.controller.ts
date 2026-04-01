@@ -7,7 +7,7 @@ export const uploadTestFile = asyncHandler(async (req: Request, res: Response) =
           try {
             // Check if file was uploaded
             if (!req.file) {
-              throw new ApiError(400, 'No file uploaded. Please provide a file with field name "file"');
+              throw new ApiError(400, 'No file uploaded. Please provide a file with field name "file"', [], "REQUIRED_FIELD");
             }
 
             // Upload file to S3
@@ -29,7 +29,7 @@ export const uploadTestFile = asyncHandler(async (req: Request, res: Response) =
           } catch (error) {
     if (error instanceof ApiError) throw error;
             console.error('Upload controller error:', error);
-            throw new ApiError(500, error instanceof Error ? error.message : 'Failed to upload file');
+            throw new ApiError(500, error instanceof Error ? error.message : 'Failed to upload file', [], "FILE_UPLOAD_ERROR");
           }
         });
 
@@ -49,6 +49,6 @@ export const testS3Connection = asyncHandler(async (req: Request, res: Response)
           } catch (error) {
     if (error instanceof ApiError) throw error;
             console.error('S3 test error:', error);
-            throw new ApiError(500, 'S3 configuration test failed');
+            throw new ApiError(500, 'S3 configuration test failed', [], "EXTERNAL_SERVICE_ERROR");
           }
         });

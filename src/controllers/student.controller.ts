@@ -16,7 +16,7 @@ export const getCurrentStudent = asyncHandler(async (req: Request, res: Response
   const studentId = (req as any).user?.id;
   
   if (!studentId) {
-    throw new ApiError(401, "Student not authenticated");
+    throw new ApiError(401, "Student not authenticated", [], "UNAUTHORIZED");
   }
 
   const student = await prisma.student.findUnique({
@@ -46,7 +46,7 @@ export const getCurrentStudent = asyncHandler(async (req: Request, res: Response
   });
 
   if (!student) {
-    throw new ApiError(404, "Student not found");
+    throw new ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
   }
 
   return res.status(200).json({
@@ -86,7 +86,7 @@ export const deleteStudentDetails = asyncHandler(async (req: Request, res: Respo
   const studentId = Number(id);
 
   if (isNaN(studentId)) {
-    throw new ApiError(400, "Invalid student id");
+    throw new ApiError(400, "Invalid student id", [], "INVALID_INPUT");
   }
 
   await deleteStudentDetailsService(studentId);
@@ -132,7 +132,7 @@ export const addStudentProgressController = asyncHandler(async (
   const { student_id, question_id } = req.body;
 
   if (!student_id || !question_id) {
-    throw new ApiError(400, "student_id and question_id are required");
+    throw new ApiError(400, "student_id and question_id are required", [], "REQUIRED_FIELD");
   }
 
   const progress = await addStudentProgressService(

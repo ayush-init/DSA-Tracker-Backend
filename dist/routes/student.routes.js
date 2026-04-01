@@ -25,20 +25,8 @@ router.get("/profile/:username", optionalAuth_middleware_1.optionalAuth, student
 router.use(auth_middleware_1.verifyToken, role_middleware_1.isStudent, student_middleware_1.extractStudentInfo);
 // Current student info (lightweight - for header/homepage)
 router.get("/me", student_controller_1.getCurrentStudent);
-// Update current student profile (coding profiles, profile image, etc.)
-router.put("/me", (req, res, next) => {
-    (0, uploadphoto_middleware_1.uploadSingle)(req, res, (err) => {
-        if (err) {
-            console.error('Multer error:', err);
-            return res.status(400).json({
-                success: false,
-                message: err.message || 'File upload error',
-                code: 'FILE_UPLOAD_ERROR'
-            });
-        }
-        next();
-    });
-}, updateStudentProfile_controller_1.updateStudentProfile);
+// Update current student profile (coding profiles, etc.)
+router.put("/me", updateStudentProfile_controller_1.updateStudentProfile);
 // Batches
 router.get("/batches", batch_controller_1.getAllBatches);
 // Cities

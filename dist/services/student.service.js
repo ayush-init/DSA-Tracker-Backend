@@ -8,6 +8,7 @@ const prisma_1 = __importDefault(require("../config/prisma"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const usernameGenerator_1 = require("../utils/usernameGenerator");
 const client_1 = require("@prisma/client");
+const errorMapper_1 = require("../utils/errorMapper");
 const ApiError_1 = require("../utils/ApiError");
 // ==============================
 // GET ALL STUDENTS
@@ -351,16 +352,16 @@ const updateStudentDetailsService = async (id, body) => {
     catch (error) {
         if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
             if (error.code === "P2025") {
-                throw new ApiError_1.ApiError(404, "Student not found");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.NOT_FOUND, "Student not found");
             }
             if (error.code === "P2002") {
-                throw new ApiError_1.ApiError(400, "Email, Username or Enrollment ID already exists");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.CONFLICT, "Email, Username or Enrollment ID already exists");
             }
             if (error.code === "P2003") {
-                throw new ApiError_1.ApiError(400, "Invalid city or batch reference");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.BAD_REQUEST, "Invalid city or batch reference");
             }
         }
-        throw new ApiError_1.ApiError(500, "Failed to update student");
+        throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to update student");
     }
 };
 exports.updateStudentDetailsService = updateStudentDetailsService;
@@ -373,7 +374,7 @@ const deleteStudentDetailsService = async (id) => {
             where: { id }
         });
         if (!student) {
-            throw new ApiError_1.ApiError(400, "Student not found");
+            throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.NOT_FOUND, "Student not found");
         }
         await prisma_1.default.student.delete({
             where: { id }
@@ -383,10 +384,10 @@ const deleteStudentDetailsService = async (id) => {
     catch (error) {
         if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
             if (error.code === "P2025") {
-                throw new ApiError_1.ApiError(404, "Student not found");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.NOT_FOUND, "Student not found");
             }
         }
-        throw new ApiError_1.ApiError(500, "Failed to delete student");
+        throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to delete student");
     }
 };
 exports.deleteStudentDetailsService = deleteStudentDetailsService;
@@ -398,12 +399,13 @@ const createStudentService = async (data) => {
         const { name, email, username, password, enrollment_id, batch_id, leetcode_id, gfg_id } = data;
         // Only require name and email, username will be generated if not provided
         if (!name || !email) {
-            throw new ApiError_1.ApiError(400, "Name and email are required");
+            throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.BAD_REQUEST, "Name and email are required");
         }
         // Generate username if not provided
         let finalUsername = username;
         if (!finalUsername) {
-            finalUsername = await (0, usernameGenerator_1.generateUsername)(name, enrollment_id);
+            const usernameResult = await (0, usernameGenerator_1.generateUsername)(name, enrollment_id);
+            finalUsername = usernameResult.finalUsername;
         }
         // batch exist check karo
         const batch = await prisma_1.default.batch.findUnique({
@@ -414,7 +416,7 @@ const createStudentService = async (data) => {
             }
         });
         if (!batch) {
-            throw new ApiError_1.ApiError(400, "Batch not found");
+            throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.NOT_FOUND, "Batch not found");
         }
         let password_hash = null;
         if (password) {
@@ -440,20 +442,20 @@ const createStudentService = async (data) => {
             if (error.code === "P2002") {
                 const field = error.meta?.target;
                 if (field?.includes("email"))
-                    throw new ApiError_1.ApiError(400, "Email already exists");
+                    throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.CONFLICT, "Email already exists", [], "EMAIL_ALREADY_EXISTS");
                 if (field?.includes("username"))
-                    throw new ApiError_1.ApiError(400, "Username already exists");
+                    throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.CONFLICT, "Username already exists");
                 if (field?.includes("enrollment_id"))
-                    throw new ApiError_1.ApiError(400, "Enrollment ID already exists");
+                    throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.CONFLICT, "Enrollment ID already exists");
                 if (field?.includes("google_id"))
-                    throw new ApiError_1.ApiError(400, "Google account already linked");
-                throw new ApiError_1.ApiError(400, "Duplicate field detected");
+                    throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.CONFLICT, "Google account already linked");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.CONFLICT, "Duplicate field detected");
             }
             if (error.code === "P2003") {
-                throw new ApiError_1.ApiError(400, "Invalid batch reference");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.BAD_REQUEST, "Invalid batch reference");
             }
         }
-        throw new ApiError_1.ApiError(400, "Failed to create student");
+        throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to create student");
     }
 };
 exports.createStudentService = createStudentService;
@@ -464,14 +466,14 @@ const addStudentProgressService = async (student_id, question_id) => {
             where: { id: student_id }
         });
         if (!student) {
-            throw new ApiError_1.ApiError(400, "Student not found");
+            throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.NOT_FOUND, "Student not found");
         }
         // check question
         const question = await prisma_1.default.question.findUnique({
             where: { id: question_id }
         });
         if (!question) {
-            throw new ApiError_1.ApiError(400, "Question not found");
+            throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.NOT_FOUND, "Question not found");
         }
         // create progress
         const progress = await prisma_1.default.studentProgress.create({
@@ -486,14 +488,14 @@ const addStudentProgressService = async (student_id, question_id) => {
         if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
             // duplicate solved question
             if (error.code === "P2002") {
-                throw new ApiError_1.ApiError(400, "Student already solved this question");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.CONFLICT, "Student already solved this question");
             }
             // foreign key error
             if (error.code === "P2003") {
-                throw new ApiError_1.ApiError(400, "Invalid student or question reference");
+                throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.BAD_REQUEST, "Invalid student or question reference");
             }
         }
-        throw new ApiError_1.ApiError(400, "Failed to add student progress");
+        throw new ApiError_1.ApiError(errorMapper_1.HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to add student progress");
     }
 };
 exports.addStudentProgressService = addStudentProgressService;

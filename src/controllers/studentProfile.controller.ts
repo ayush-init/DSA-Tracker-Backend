@@ -9,7 +9,7 @@ export const getStudentProfile = asyncHandler(async (req: StudentRequest, res: R
             const studentId = req.user?.id;
             
             if (!studentId) {
-              throw new ApiError(401, "Student ID not found");
+              throw new ApiError(500, "Failed to get student profile", [], "INTERNAL_SERVER_ERROR");
             }
 
             const profile = await getStudentProfileService(studentId);
@@ -17,7 +17,7 @@ export const getStudentProfile = asyncHandler(async (req: StudentRequest, res: R
           } catch (error) {
     if (error instanceof ApiError) throw error;
             console.error("Profile error:", error);
-            throw new ApiError(500, error instanceof Error ? error.message : "Failed to get student profile");
+            throw new ApiError(500, error instanceof Error ? error.message : "Failed to get student profile", [], "INTERNAL_SERVER_ERROR");
           }
         });
 
@@ -27,7 +27,7 @@ export const getPublicStudentProfile = asyncHandler(async (req: Request, res: Re
             const currentUserId = (req as any).user?.id; // From optional auth middleware
             
             if (!username || Array.isArray(username)) {
-              throw new ApiError(400, "Username is required");
+              throw new ApiError(400, "Username is required", [], "REQUIRED_FIELD");
             }
 
             const profile = await getPublicStudentProfileService(username);
@@ -39,6 +39,6 @@ export const getPublicStudentProfile = asyncHandler(async (req: Request, res: Re
           } catch (error) {
     if (error instanceof ApiError) throw error;
             console.error("Public profile error:", error);
-            throw new ApiError(500, error instanceof Error ? error.message : "Failed to get public student profile");
+            throw new ApiError(500, "Failed to get public student profile", [], "INTERNAL_SERVER_ERROR");
           }
         });

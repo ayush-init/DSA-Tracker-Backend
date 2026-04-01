@@ -10,13 +10,13 @@ export const getRecentQuestions = asyncHandler(async (req: Request, res: Respons
             const { days } = req.query;
 
             if (!batchId) {
-              throw new ApiError(400, "Student authentication required",);
+              throw new ApiError(401, "Student authentication required", [], "UNAUTHORIZED");
             }
 
             // Parse days parameter (default to 7)
             const daysParam = days ? parseInt(days as string) : 7;
             if (isNaN(daysParam) || daysParam < 1 || daysParam > 30) {
-              throw new ApiError(400, "Days parameter must be a number between 1 and 30",);
+              throw new ApiError(400, "Days parameter must be a number between 1 and 30", [], "INVALID_INPUT");
             }
 
             const questions = await getRecentQuestionsService({
@@ -31,6 +31,6 @@ export const getRecentQuestions = asyncHandler(async (req: Request, res: Respons
 
           } catch (error: any) {
     if (error instanceof ApiError) throw error;
-            throw new ApiError(500, error.message || "Failed to fetch recent questions",);
+            throw new ApiError(500, error.message || "Failed to fetch recent questions", [], "INTERNAL_SERVER_ERROR");
           }
         });

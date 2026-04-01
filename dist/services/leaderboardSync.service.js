@@ -64,6 +64,14 @@ const syncLeaderboardData = async () => {
         GROUP BY sp.student_id
       ),
       
+      question_availability AS (
+        SELECT DISTINCT
+          DATE(q.created_at) as date,
+          true as has_question
+        FROM "Question" q
+        WHERE DATE(q.created_at) >= CURRENT_DATE - INTERVAL '365 days'
+      ),
+      
       final_stats AS (
         SELECT
           s.id AS student_id,
@@ -92,6 +100,14 @@ const syncLeaderboardData = async () => {
           
           -- Activity dates for streak calculation
           COALESCE(ad.activity_dates, ARRAY[]::DATE[]) AS activity_dates,
+          
+          -- Question availability for freeze logic
+          COALESCE(
+            (SELECT array_agg(qa.date ORDER BY qa.date DESC) 
+             FROM question_availability qa 
+             WHERE qa.date >= CURRENT_DATE - INTERVAL '365 days'),
+            ARRAY[]::DATE[]
+          ) AS question_dates,
           
           -- Assigned counts from Batch table
           b.hard_assigned,
@@ -174,6 +190,7 @@ const syncLeaderboardData = async () => {
         medium_solved,
         easy_solved,
         activity_dates,
+        question_dates,
         weekly_global_rank,
         weekly_city_rank,
         monthly_global_rank,
@@ -187,9 +204,15 @@ const syncLeaderboardData = async () => {
             if (result.length > 0) {
                 const insertStart = Date.now();
                 const values = result.map((row) => {
-                    // Calculate streaks for this student
+                    // Prepare question availability data
+                    const questionDates = row.question_dates || [];
+                    const questionAvailability = questionDates.map((date) => ({
+                        date,
+                        hasQuestion: true
+                    }));
+                    // Calculate streaks with freeze logic
                     const activityDates = row.activity_dates || [];
-                    const streaks = (0, streakCalculator_1.calculateStreakByActivity)(activityDates);
+                    const streaks = (0, streakCalculator_1.calculateStreakWithFreeze)(activityDates, questionAvailability);
                     return `(${row.student_id}, ${row.hard_solved}, ${row.medium_solved}, ${row.easy_solved}, ${streaks.currentStreak}, ${streaks.maxStreak}, ${row.weekly_global_rank}, ${row.weekly_city_rank}, ${row.monthly_global_rank}, ${row.monthly_city_rank}, ${row.alltime_global_rank}, ${row.alltime_city_rank}, NOW())`;
                 }).join(',');
                 await tx.$executeRawUnsafe(`

@@ -60,7 +60,7 @@ export const createQuestionService = async ({
   });
 
   if (duplicate) {
-    throw new ApiError(400, "Question link already exists");
+    throw new ApiError(400, "Question link already exists", [], "QUESTION_LINK_EXISTS");
   }
 
   const question = await prisma.question.create({
@@ -226,7 +226,7 @@ export const updateQuestionService = async ({
   });
 
   if (duplicate) {
-    throw new ApiError(400, "Question link already exists");
+    throw new ApiError(400, "Question link already exists", [], "QUESTION_LINK_EXISTS");
   }
 
   const updated = await prisma.question.update({

@@ -37,7 +37,7 @@ const createQuestionService = async ({ question_name, question_link, topic_id, p
         },
     });
     if (duplicate) {
-        throw new ApiError_1.ApiError(400, "Question link already exists");
+        throw new ApiError_1.ApiError(400, "Question link already exists", [], "QUESTION_LINK_EXISTS");
     }
     const question = await prisma_1.default.question.create({
         data: {
@@ -141,7 +141,7 @@ const updateQuestionService = async ({ id, question_name, question_link, topic_i
         },
     });
     if (duplicate) {
-        throw new ApiError_1.ApiError(400, "Question link already exists");
+        throw new ApiError_1.ApiError(400, "Question link already exists", [], "QUESTION_LINK_EXISTS");
     }
     const updated = await prisma_1.default.question.update({
         where: { id },

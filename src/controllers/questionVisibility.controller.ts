@@ -13,39 +13,39 @@ export const assignQuestionsToClass = asyncHandler(async (
             const classSlug = req.params.classSlug;
 
             if (typeof topicSlugParam !== "string") {
-              throw new ApiError(400, "Invalid topic slug",);
+              throw new ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
             }
 
             if (typeof classSlug !== "string") {
-              throw new ApiError(400, "Invalid class slug",);
+              throw new ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
             }
 
             const { question_ids } = req.body;
 
             // Validation 1: Check if question_ids is provided
             if (!question_ids) {
-              throw new ApiError(400, "question_ids field is required",);
+              throw new ApiError(400, "question_ids field is required", [], "REQUIRED_FIELD");
             }
 
             // Validation 2: Check if question_ids is an array
             if (!Array.isArray(question_ids)) {
-              throw new ApiError(400, "question_ids must be an array",);
+              throw new ApiError(400, "question_ids must be an array", [], "INVALID_INPUT");
             }
 
             // Validation 3: Check if array is not empty
             if (question_ids.length === 0) {
-              throw new ApiError(400, "question_ids array cannot be empty",);
+              throw new ApiError(400, "question_ids array cannot be empty", [], "INVALID_INPUT");
             }
 
             // Validation 4: Check if all elements are numbers
             if (!question_ids.every(id => typeof id === 'number' && id > 0)) {
-              throw new ApiError(400, "All question_ids must be positive numbers",);
+              throw new ApiError(400, "All question_ids must be positive numbers", [], "INVALID_INPUT");
             }
 
             // Validation 5: Check for duplicate question IDs in request
             const duplicateIds = question_ids.filter((id, index) => question_ids.indexOf(id) !== index);
             if (duplicateIds.length > 0) {
-              throw new ApiError(400, `Duplicate question IDs found in request: ${duplicateIds.join(', ')}`,);
+              throw new ApiError(400, `Duplicate question IDs found in request: ${duplicateIds.join(', ')}`, [], "INVALID_INPUT");
             }
 
             const result = await assignQuestionsToClassService({
@@ -62,7 +62,7 @@ export const assignQuestionsToClass = asyncHandler(async (
 
           } catch (error: any) {
     if (error instanceof ApiError) throw error;
-            throw new ApiError(400, error.message,);
+            throw new ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
           }
         });
 
@@ -76,11 +76,11 @@ export const getAssignedQuestionsOfClass = asyncHandler(async (
             const classSlug = req.params.classSlug;
 
             if (typeof topicSlugParam !== "string") {
-              throw new ApiError(400, "Invalid topic slug",);
+              throw new ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
             }
 
             if (typeof classSlug !== "string") {
-              throw new ApiError(400, "Invalid class slug",);
+              throw new ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
             }
 
             // Extract pagination and search parameters
@@ -111,7 +111,7 @@ export const getAssignedQuestionsOfClass = asyncHandler(async (
 
           } catch (error: any) {
     if (error instanceof ApiError) throw error;
-            throw new ApiError(400, error.message,);
+            throw new ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
           }
         });
 
@@ -127,21 +127,21 @@ export const removeQuestionFromClass = asyncHandler(async (
             const questionIdParam = req.params.questionId;
             
             if (typeof questionIdParam !== "string") {
-              throw new ApiError(400, "Invalid question ID",);
+              throw new ApiError(400, "Invalid question ID", [], "INVALID_INPUT");
             }
             
             const questionId = parseInt(questionIdParam);
 
             if (typeof topicSlugParam !== "string") {
-              throw new ApiError(400, "Invalid topic slug",);
+              throw new ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
             }
 
             if (typeof classSlug !== "string") {
-              throw new ApiError(400, "Invalid class slug",);
+              throw new ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
             }
 
             if (isNaN(questionId)) {
-              throw new ApiError(400, "Invalid question ID",);
+              throw new ApiError(400, "Invalid question ID", [], "INVALID_INPUT");
             }
 
             await removeQuestionFromClassService({
@@ -157,7 +157,7 @@ export const removeQuestionFromClass = asyncHandler(async (
 
           } catch (error: any) {
     if (error instanceof ApiError) throw error;
-            throw new ApiError(400, error.message,);
+            throw new ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
           }
         });
 
