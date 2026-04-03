@@ -428,9 +428,9 @@ export const updateStudentDetailsService = async (id: number, body: any) => {
 
 
 
-// ==============================
+
 // DELETE STUDENT
-// ==============================
+
 
 export const deleteStudentDetailsService = async (id: number) => {
     try {
@@ -461,9 +461,9 @@ export const deleteStudentDetailsService = async (id: number) => {
 
 
 
-// ==============================
+
 // CREATE STUDENT
-// ==============================
+
 
 export const createStudentService = async (data: any) => {
     try {
@@ -610,4 +610,40 @@ export const addStudentProgressService = async (
 
         throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to add student progress");
     }
+};
+
+
+
+export const getCurrentStudentService = async (studentId: number) => {
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      city: {
+        select: {
+          id: true,
+          city_name: true
+        }
+      },
+      batch: {
+        select: {
+          id: true,
+          batch_name: true,
+          year: true
+        }
+      },
+      email: true,
+      profile_image_url: true,
+      leetcode_id: true,
+      gfg_id: true
+    }
+  });
+
+  if (!student) {
+    throw new ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
+  }
+
+  return student;
 };

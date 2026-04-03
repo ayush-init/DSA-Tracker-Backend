@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import { ApiError } from "../utils/ApiError";
+import prisma from "../config/prisma";
 
 interface LeetcodeSubmission {
   titleSlug: string;
@@ -64,3 +65,5 @@ export async function fetchLeetcodeData(
     submissions: data.recentSubmissionList
   };
 }
+
+

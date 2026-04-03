@@ -144,10 +144,10 @@ export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForB
   //   },
   //   orderBy: { created_at: "desc" }
   // });
-     const allTopics = await prisma.topic.findMany({
+  const allTopics = await prisma.topic.findMany({
     orderBy: { created_at: "desc" }
   });
- 
+
   // Step 2: Get all classes for THIS batch
   const batchClasses = await prisma.class.findMany({
     where: { batch_id: batchId },
@@ -155,21 +155,21 @@ export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForB
       questionVisibility: true
     }
   });
- 
+
   // Step 3: Create map of topic -> classes/questions for THIS batch
   const topicStats = new Map();
-  
+
   batchClasses.forEach(cls => {
     const currentStats = topicStats.get(cls.topic_id) || { classCount: 0, questionCount: 0 };
     currentStats.classCount += 1;
     currentStats.questionCount += cls.questionVisibility.length;
     topicStats.set(cls.topic_id, currentStats);
   });
- 
+
   // Step 4: Transform all topics with stats
   const topics = allTopics.map(topic => {
     const stats = topicStats.get(topic.id) || { classCount: 0, questionCount: 0 };
-    
+
     return {
       id: topic.id.toString(),
       topic_name: topic.topic_name,
@@ -185,7 +185,7 @@ export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForB
 
   // Create topic map with class counts
   const topicMap = new Map();
-  
+
   // Initialize all topics with 0 counts
   allTopics.forEach(topic => {
     topicMap.set(topic.id, {
@@ -198,7 +198,7 @@ export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForB
       firstClassCreated_at: null
     });
   });
-  
+
   // Update counts for topics that have classes in this batch
   batch.classes.forEach(cls => {
     const topic = topicMap.get(cls.topic.id);
@@ -209,12 +209,12 @@ export const getTopicsForBatchService = async ({ batchId, query }: GetTopicsForB
     }
   });
 
-  
-  
+
+
   // Apply search filter if provided
   let filteredTopics = topics;
   if (query?.search) {
-    filteredTopics = topics.filter(topic => 
+    filteredTopics = topics.filter(topic =>
       topic.topic_name.toLowerCase().includes(query.search.toLowerCase())
     );
   }
@@ -499,10 +499,10 @@ export const getTopicsWithBatchProgressService = async ({
     const solvedQuestions = solvedByTopic.get(topic.id) || new Set();
 
     // Find earliest class creation date, or null if no classes
-    const firstClass = topic.classes.length > 0 
+    const firstClass = topic.classes.length > 0
       ? topic.classes.reduce((earliest: any, cls: any) => {
-          return !earliest || cls.created_at < earliest.created_at ? cls : earliest;
-        }, null)
+        return !earliest || cls.created_at < earliest.created_at ? cls : earliest;
+      }, null)
       : null;
 
     return {
@@ -662,5 +662,91 @@ export const getTopicOverviewWithClassesSummaryService = async ({
       totalQuestions: totalTopicQuestions,
       solvedQuestions: totalSolvedQuestions
     }
+  };
+};
+
+
+export const createTopicsBulkService = async (topics: Array<{ topic_name: string; slug: string }>) => {
+  const created = await prisma.topic.createMany({
+    data: topics,
+    skipDuplicates: true, // ignore duplicates
+  });
+
+  return created;
+};
+
+export const getTopicProgressByUsernameService = async (username: string) => {
+  // Find the student by username
+  const student = await prisma.student.findUnique({
+    where: { username: username as string },
+    include: {
+      batch: true
+    }
+  });
+
+  if (!student) {
+    throw new ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
+  }
+  if (!student.batch_id) {
+    throw new ApiError(400, "Student is not assigned to any batch", [], "NO_BATCH_ASSIGNED");
+  }
+  // Get student progress to calculate solved questions
+  const studentProgress = await prisma.studentProgress.findMany({
+    where: { student_id: student.id }
+  });
+
+  // Get all topics with their classes
+  const topics = await prisma.topic.findMany({
+    include: {
+      classes: {
+        where: {
+          batch_id: student.batch_id
+        },
+        include: {
+          questionVisibility: {
+            include: {
+              question: {
+                select: {
+                  level: true,
+                  platform: true,
+                  type: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Calculate progress for each topic (same logic as controller)
+  const topicsWithProgress = topics.map(topic => {
+    const topicClasses = topic.classes;
+    const totalQuestions = topicClasses.reduce((sum, classItem) => {
+      return sum + classItem.questionVisibility.length;
+    }, 0);
+
+    const solvedQuestions = studentProgress.filter(progress => {
+      return topicClasses.some(classItem =>
+        classItem.questionVisibility.some(qv => qv.question_id === progress.question_id)
+      );
+    }).length;
+
+    return {
+      ...topic,
+      totalQuestions,
+      solvedQuestions,
+      progressPercentage: totalQuestions > 0 ? Math.round((solvedQuestions / totalQuestions) * 100) : 0
+    };
+  });
+
+  return {
+    student: {
+      id: student.id,
+      name: student.name,
+      username: student.username,
+      batch: student.batch
+    },
+    topics: topicsWithProgress
   };
 };

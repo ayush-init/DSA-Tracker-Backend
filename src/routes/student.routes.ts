@@ -10,12 +10,10 @@ import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
 import { getPublicStudentProfile } from "../controllers/studentProfile.controller";
 import { getCurrentStudent } from "../controllers/student.controller";
 import { updateStudentProfile } from "../controllers/updateStudentProfile.controller";
-import { getStudentById } from "../controllers/getStudentById.controller";
 import { uploadSingle } from '../middlewares/uploadphoto.middleware';
 import { uploadProfileImage, deleteProfileImage,} from '../controllers/profileImage.controller';
 import { getAllBatches } from "../controllers/batch.controller";
 import { getAllCities } from "../controllers/city.controller";
-import { completeProfile } from "../controllers/profile.controller";
 import { updateUsername } from "../controllers/username.controller";
 import { getRecentQuestions } from "../controllers/recentQuestions.controller";
 

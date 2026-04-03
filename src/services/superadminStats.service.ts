@@ -32,3 +32,20 @@ export const getSuperAdminStatsService = async () => {
     }
 };
 
+export const getCurrentSuperAdminService = async (adminId: number) => {
+  const superadmin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true
+    }
+  });
+
+  if (!superadmin) {
+    throw new ApiError(404, "SuperAdmin not found");
+  }
+
+  return superadmin;
+};

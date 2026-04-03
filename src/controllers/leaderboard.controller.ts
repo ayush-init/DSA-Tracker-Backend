@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { getLeaderboardWithPagination, getStudentRankDirect, getAvailableYears } from "../services/leaderboard.service";
-import { syncLeaderboardData } from "../services/leaderboardSync.service";
 import prisma from "../config/prisma";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
@@ -411,3 +410,5 @@ export const getLeaderboardByType = asyncHandler(async (req: Request, res: Respo
                 });
             }
         });
+
+        

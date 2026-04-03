@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addStudentProgressService } from "../services/student.service";
+import { addStudentProgressService, getCurrentStudentService } from "../services/student.service";
 import {
     updateStudentDetailsService,
     deleteStudentDetailsService,
@@ -18,37 +18,9 @@ export const getCurrentStudent = asyncHandler(async (req: Request, res: Response
   if (!studentId) {
     throw new ApiError(401, "Student not authenticated", [], "UNAUTHORIZED");
   }
-
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      city: {
-        select: {
-          id: true,
-          city_name: true
-        }
-      },
-      batch: {
-        select: {
-          id: true,
-          batch_name: true,
-          year: true
-        }
-      },
-      email: true,
-      profile_image_url: true,
-      leetcode_id: true,
-      gfg_id: true
-    }
-  });
-
-  if (!student) {
-    throw new ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
-  }
-
+ 
+  const student = await getCurrentStudentService(studentId);
+ 
   return res.status(200).json({
     success: true,
     data: {
@@ -64,6 +36,7 @@ export const getCurrentStudent = asyncHandler(async (req: Request, res: Response
     }
   });
 });
+ 
 
 export const updateStudentDetails = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;

@@ -130,7 +130,6 @@ export const createAdminService = async (adminData: any) => {
         // Remove password_hash from response
         const { password_hash, ...adminResponse } = newAdmin;
         return adminResponse;
-
     } catch (error) {
         console.error("Create admin error:", error);
         throw error;
@@ -317,4 +316,139 @@ export const deleteAdminService = async (id: number) => {
         console.error("Delete admin error:", error);
         throw error;
     }
+};
+
+
+
+export const getCurrentAdminService = async (adminId: number) => {
+  const admin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      city_id: true,
+      batch_id: true,
+      city: {
+        select: {
+          id: true,
+          city_name: true
+        }
+      },
+      batch: {
+        select: {
+          id: true,
+          batch_name: true,
+          year: true
+        }
+      },
+      created_at: true
+    }
+  });
+
+  if (!admin) {
+    throw new ApiError(404, "Admin not found", [], "ADMIN_NOT_FOUND");
+  }
+
+  return admin;
+};
+
+
+
+
+
+
+export const getAdminStatsService = async (batchId: number) => {
+  // Check if batch exists
+  const batch = await prisma.batch.findUnique({
+    where: { id: batchId },
+    include: {
+      city: {
+        select: {
+          city_name: true
+        }
+      }
+    }
+  });
+
+  if (!batch) {
+    throw new ApiError(404, "Batch not found", [], "BATCH_NOT_FOUND");
+  }
+
+  // Get total classes for this batch
+  const totalClasses = await prisma.class.count({
+    where: { batch_id: batchId }
+  });
+
+  // Get total students for this batch
+  const totalStudents = await prisma.student.count({
+    where: { batch_id: batchId }
+  });
+
+  // Get all questions assigned to this batch's classes
+  const assignedQuestions = await prisma.questionVisibility.findMany({
+    where: {
+      class: {
+        batch_id: batchId
+      }
+    },
+    include: {
+      question: {
+        select: {
+          level: true,
+          platform: true,
+          type: true
+        }
+      }
+    }
+  });
+
+  const totalQuestions = assignedQuestions.length;
+
+  // Calculate questions by type
+  const questionsByType = {
+    homework: assignedQuestions.filter((qc: any) => qc.question.type === 'HOMEWORK').length,
+    classwork: assignedQuestions.filter((qc: any) => qc.question.type === 'CLASSWORK').length
+  };
+
+  // Calculate questions by level
+  const questionsByLevel = {
+    easy: assignedQuestions.filter((qc: any) => qc.question.level === 'EASY').length,
+    medium: assignedQuestions.filter((qc: any) => qc.question.level === 'MEDIUM').length,
+    hard: assignedQuestions.filter((qc: any) => qc.question.level === 'HARD').length
+  };
+
+  // Calculate questions by platform
+  const questionsByPlatform = {
+    leetcode: assignedQuestions.filter((qc: any) => qc.question.platform === 'LEETCODE').length,
+    gfg: assignedQuestions.filter((qc: any) => qc.question.platform === 'GFG').length,
+    other: assignedQuestions.filter((qc: any) => qc.question.platform === 'OTHER').length,
+    interviewbit: assignedQuestions.filter((qc: any) => qc.question.platform === 'INTERVIEWBIT').length
+  };
+
+  // Get total topics discussed for this batch
+  const totalTopicsDiscussed = await prisma.topic.count({
+    where: {
+      classes: {
+        some: {
+          batch_id: batchId
+        }
+      }
+    }
+  });
+
+  return {
+    batch_id: batchId,
+    batch_name: batch.batch_name,
+    city: batch.city.city_name,
+    year: batch.year,
+    total_classes: totalClasses,
+    total_questions: totalQuestions,
+    total_students: totalStudents,
+    questions_by_type: questionsByType,
+    questions_by_level: questionsByLevel,
+    questions_by_platform: questionsByPlatform,
+    total_topics_discussed: totalTopicsDiscussed
+  };
 };

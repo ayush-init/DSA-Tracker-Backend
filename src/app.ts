@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import { NotFoundError } from './utils/ApiError';
@@ -16,10 +14,6 @@ import userRoutes from './routes/user.routes';
 import { startSyncJob } from './jobs/sync.job';
 
 dotenv.config();
-
-// Swagger UI Integration
-// Load OpenAPI YAML specification
-const openApiSpec = YAML.load(path.join(__dirname, '../docs/openapi.yaml'));
 
 const app = express();
 
@@ -41,13 +35,6 @@ app.use('/api/user', userRoutes);
 app.use('/api', publicRoutes);                     // Public routes (cities, batches)
 app.use('/api/admin', adminRoutes);              // Teacher & Intern & admin
 app.use('/api/superadmin',superadminRoutes);    // Superadmin ONLY
-
-// Swagger UI Documentation Route
-// Developers can test all APIs interactively at /api-docs
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'DSA Tracker API Documentation'
-}));
 
 // Serve static files for CSV UI
 app.use('/csv-ui', express.static(path.join(__dirname, 'csv_ui')));

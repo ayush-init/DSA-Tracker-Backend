@@ -71,7 +71,7 @@ model Admin {
   name          String    @db.VarChar(100)
   email         String    @unique @db.VarChar(150)
   password_hash String
-  role          AdminRole @default(INTERN)
+  role          AdminRole @default(TEACHER)
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
   refresh_token String?
@@ -206,7 +206,6 @@ enum QuestionType {
 enum AdminRole {
   SUPERADMIN
   TEACHER
-  INTERN
 }
 
 model PasswordResetOTP {

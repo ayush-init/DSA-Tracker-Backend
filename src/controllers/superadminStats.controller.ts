@@ -1,73 +1,57 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
-import { getSuperAdminStatsService } from "../services/superadminStats.service";
+import { getCurrentSuperAdminService, getSuperAdminStatsService } from "../services/superadminStats.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 
 export const getCurrentSuperAdminController = asyncHandler(async (req: Request, res: Response) => {
-            try {
-                // Get superadmin info from middleware (extracted from token)
-                const superadminInfo = (req as any).admin;
-                
-                if (!superadminInfo) {
-                    return res.status(401).json({
-                        success: false,
-                        message: "SuperAdmin not authenticated"
-                    });
-                }
+    try {
+        // Get superadmin info from middleware (extracted from token)
+        const superadminInfo = (req as any).admin;
 
-                // Get full superadmin details from database
-                const superadmin = await prisma.admin.findUnique({
-                    where: { id: superadminInfo.id },
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        role: true
-                    }
-                });
+        if (!superadminInfo) {
+            return res.status(401).json({
+                success: false,
+                message: "SuperAdmin not authenticated"
+            });
+        }
 
-                if (!superadmin) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "SuperAdmin not found"
-                    });
-                }
+        const superadmin = await getCurrentSuperAdminService(superadminInfo.id);
 
-                return res.status(200).json({
-                    success: true,
-                    data: {
-                        id: superadmin.id,
-                        name: superadmin.name,
-                        email: superadmin.email,
-                        role: superadmin.role
-                    }
-                });
-
-            } catch (error) {
-    if (error instanceof ApiError) throw error;
-                console.error("Get current superadmin error:", error);
-                return res.status(500).json({
-                    success: false,
-                    message: error instanceof Error ? error.message : "Failed to fetch current superadmin"
-                });
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: superadmin.id,
+                name: superadmin.name,
+                email: superadmin.email,
+                role: superadmin.role
             }
         });
+
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        return res.status(500).json({
+            success: false,
+            message: error instanceof Error ? error.message : "Failed to fetch current superadmin"
+        });
+    }
+});
+
 
 export const getSuperAdminStats = asyncHandler(async (req: Request, res: Response) => {
-            try {
-                const stats = await getSuperAdminStatsService();
-                
-                res.json({
-                    success: true,
-                    data: stats
-                });
-            } catch (error) {
-    if (error instanceof ApiError) throw error;
-                console.error("System stats controller error:", error);
-                res.status(500).json({
-                    success: false,
-                    message: error instanceof Error ? error.message : "Failed to fetch system statistics"
-                });
-            }
+    try {
+        const stats = await getSuperAdminStatsService();
+
+        res.json({
+            success: true,
+            data: stats
         });
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        console.error("System stats controller error:", error);
+        res.status(500).json({
+            success: false,
+            message: error instanceof Error ? error.message : "Failed to fetch system statistics"
+        });
+    }
+});
