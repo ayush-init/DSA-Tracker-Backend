@@ -13,4 +13,6 @@ router.get("/cities", city_controller_1.getAllCities);
 router.get("/batches", batch_controller_1.getAllBatches);
 // Get topic progress by username (public profile view)
 router.get("/topicprogress/:username", topic_controller_1.getTopicProgressByUsername);
+// Get paginated topics for dropdown
+router.get("/topics", topic_controller_1.getPaginatedTopics);
 exports.default = router;

@@ -374,6 +374,8 @@ const getClassDetailsWithFullQuestionsService = async ({ studentId, batchId, top
     // Create Sets for quick lookup
     const solvedQuestionIds = new Set(studentProgress.map(progress => progress.question_id));
     const bookmarkedQuestionIds = new Set(studentBookmarks.map(bookmark => bookmark.question_id));
+    console.log(' CLASS DEBUG - studentBookmarks:', studentBookmarks);
+    console.log(' CLASS DEBUG - bookmarkedQuestionIds:', Array.from(bookmarkedQuestionIds));
     // Format questions with full details and solved status
     const questionsWithProgress = classData.questionVisibility.map((qv) => {
         const question = qv.question;

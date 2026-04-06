@@ -117,7 +117,7 @@ const syncLeaderboardData = async () => {
         alltime_city_rank
       FROM ranked_stats
       `);
-            console.log(`📊 Calculated data for ${result.length} students in ${Date.now() - calculationStart}ms`);
+            console.log(`Calculated data for ${result.length} students in ${Date.now() - calculationStart}ms`);
             // Step 3: Bulk upsert new data with streak calculation
             if (result.length > 0) {
                 const insertStart = Date.now();
@@ -129,9 +129,10 @@ const syncLeaderboardData = async () => {
                     console.log(`🔍 DEBUG: First row data:`, JSON.stringify(safeResult, null, 2));
                 }
                 const values = result.map((row) => {
-                    // Calculate streaks with completion-based freeze logic
-                    const activityDates = row.activity_dates || [];
+                    // Convert SQL DATE array to JavaScript Date array
+                    const activityDates = (row.activity_dates || []).map((dateStr) => new Date(dateStr));
                     console.log(`🔍 DEBUG: Processing student ${row.student_id}, activity dates: ${activityDates.length}, completed_all_questions: ${row.completed_all_questions}`);
+                    // Use shared batch stats logic for consistency
                     const streaks = (0, streakCalculator_1.calculateStreakWithCompletionFreeze)(activityDates, row.student_id, row.completed_all_questions || false);
                     console.log(`🔍 DEBUG: Calculated streaks for student ${row.student_id}:`, { currentStreak: streaks.currentStreak, maxStreak: streaks.maxStreak });
                     return `(${row.student_id}, ${row.hard_solved}, ${row.medium_solved}, ${row.easy_solved}, ${streaks.currentStreak}, ${streaks.maxStreak}, ${row.alltime_global_rank}, ${row.alltime_city_rank}, NOW())`;

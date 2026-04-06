@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPublicStudentProfileService = exports.getStudentProfileService = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
 const ApiError_1 = require("../utils/ApiError");
+const heatmap_service_1 = require("./heatmap.service");
 const getStudentProfileService = async (studentId) => {
     try {
         // 1️⃣ Get student basic info + leaderboard
@@ -63,76 +64,17 @@ const getStudentProfileService = async (studentId) => {
             },
             take: 5
         });
-        // 3️⃣ Enhanced Heatmap with Freeze Day Logic
+        // 3️⃣ Unified Heatmap with Dynamic Start Date
+        const heatmap = await (0, heatmap_service_1.generateUnifiedHeatmap)(studentId, student.batch_id);
+        // Get heatmap start month for frontend
+        const heatmapStartMonth = await (0, heatmap_service_1.getBatchStartMonth)(student.batch_id);
+        // 4️⃣ Get today's submission count and question availability
         const today = new Date();
-        const oneYearAgo = new Date(today);
-        oneYearAgo.setDate(oneYearAgo.getDate() - 365);
-        const heatmap = await prisma_1.default.$queryRaw `
-          WITH date_range AS (
-            SELECT generate_series(
-              DATE(${oneYearAgo.toISOString().split('T')[0]})::date,
-              DATE(${today.toISOString().split('T')[0]})::date,
-              '1 day'::interval
-            )::date as date
-          ),
-          student_submissions AS (
-            SELECT 
-              DATE(sync_at) as submission_date,
-              COUNT(*) as submission_count
-            FROM "StudentProgress"
-            WHERE student_id = ${studentId}
-              AND DATE(sync_at) >= DATE(${oneYearAgo.toISOString().split('T')[0]})
-            GROUP BY DATE(sync_at)
-          ),
-          student_completion_stats AS (
-            SELECT 
-              COUNT(DISTINCT sp.question_id) as total_solved,
-              (b.hard_assigned + b.medium_assigned + b.easy_assigned) as total_assigned
-            FROM "StudentProgress" sp
-            JOIN "Student" s ON sp.student_id = s.id
-            JOIN "Batch" b ON s.batch_id = b.id
-            WHERE sp.student_id = ${studentId}
-          ),
-          question_availability AS (
-            SELECT 
-              dr.date,
-              COUNT(sp.question_id) as daily_solved,
-              scs.total_solved,
-              scs.total_assigned,
-              CASE 
-                WHEN scs.total_solved >= scs.total_assigned THEN true
-                ELSE false
-              END as completed_all_questions
-            FROM date_range dr
-            LEFT JOIN "StudentProgress" sp ON DATE(sp.sync_at) = dr.date AND sp.student_id = ${studentId}
-            CROSS JOIN student_completion_stats scs
-          ),
-          SELECT 
-            date,
-            CASE 
-              WHEN daily_solved > 0 THEN daily_solved
-              WHEN completed_all_questions THEN 0    -- Freeze day: completed all questions, no break
-              ELSE 0                           -- Break day: didn't solve anything and haven't completed all
-            END as count
-          FROM question_availability
-          ORDER BY date DESC
-        `;
-        // 4️⃣ Get today's submission count and check if questions were uploaded today
         const todayStr = today.toISOString().split('T')[0];
         const todaySubmission = heatmap.find((h) => h.date === todayStr);
         const count = todaySubmission ? Number(todaySubmission.count) : 0;
-        // Check if any question was uploaded today for this student's batch + city
-        const hasQuestion = await prisma_1.default.$queryRaw `
-      SELECT EXISTS(
-        SELECT 1 
-        FROM "Question" q
-        JOIN "QuestionVisibility" qv ON q.id = qv.question_id
-        JOIN "Class" c ON qv.class_id = c.id
-        WHERE DATE(qv.assigned_at) = ${todayStr}
-        AND c.batch_id = ${student.batch_id}
-      ) as has_question
-    `;
-        const hasQuestionResult = hasQuestion.length > 0 ? Boolean(hasQuestion[0].has_question) : false;
+        // Check if any question was uploaded today for this student's batch
+        const hasQuestionResult = await (0, heatmap_service_1.getTodayQuestionAvailability)(student.batch_id);
         return {
             student: {
                 name: student.name,
@@ -180,6 +122,7 @@ const getStudentProfileService = async (studentId) => {
                 date: h.date,
                 count: Number(h.count)
             })),
+            heatmapStartMonth: heatmapStartMonth.toISOString().split('T')[0],
             recentActivity: recentActivity.map((a) => ({
                 question_name: a.question.question_name,
                 question_link: a.question.question_link,
@@ -248,63 +191,10 @@ const getPublicStudentProfileService = async (username) => {
         take: 5
     });
     const leaderboard = student.leaderboards;
-    // 3️⃣ Enhanced Heatmap with Freeze Day Logic
-    const today = new Date();
-    const oneYearAgo = new Date(today);
-    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
-    const heatmap = await prisma_1.default.$queryRaw `
-      WITH date_range AS (
-        SELECT generate_series(
-          DATE(${oneYearAgo.toISOString().split('T')[0]})::date,
-          DATE(${today.toISOString().split('T')[0]})::date,
-          '1 day'::interval
-        )::date as date
-      ),
-      student_submissions AS (
-        SELECT 
-          DATE(sync_at) as submission_date,
-          COUNT(*) as submission_count
-        FROM "StudentProgress"
-        WHERE student_id = ${studentId}
-          AND DATE(sync_at) >= DATE(${oneYearAgo.toISOString().split('T')[0]})
-        GROUP BY DATE(sync_at)
-      ),
-      question_availability AS (
-        SELECT 
-          dr.date,
-          COALESCE(ss.submission_count, 0) as submissions,
-          CASE 
-            WHEN EXISTS (
-              SELECT 1 
-              FROM "Question" q
-              JOIN "Topic" t ON q.topic_id = t.id
-              JOIN "Class" c ON t.id = c.topic_id
-              WHERE DATE(q.created_at) = dr.date
-                AND c.batch_id = ${student.batch_id}
-                AND (
-                  ${student.city?.id} IS NULL 
-                  OR EXISTS (
-                    SELECT 1 FROM "City" city 
-                    WHERE city.id = ${student.city?.id}
-                  )
-                )
-            ) THEN true
-            ELSE false
-          END as has_question
-        FROM date_range dr
-        LEFT JOIN student_submissions ss ON dr.date = ss.submission_date
-      )
-      SELECT 
-        date,
-        CASE 
-          WHEN NOT has_question AND submissions = 0 THEN -1  -- Freeze day with no submissions
-          WHEN NOT has_question AND submissions > 0 THEN submissions  -- Freeze day but student solved previous questions
-          WHEN has_question AND submissions = 0 THEN 0     -- Questions available but no submissions (streak break)
-          ELSE submissions                -- Actual submission count
-        END as count
-      FROM question_availability
-      ORDER BY date DESC
-    `;
+    // 3️⃣ Unified Heatmap with Dynamic Start Date
+    const heatmap = await (0, heatmap_service_1.generateUnifiedHeatmap)(studentId, student.batch_id);
+    // Get heatmap start month for frontend
+    const heatmapStartMonth = await (0, heatmap_service_1.getBatchStartMonth)(student.batch_id);
     return {
         student: {
             id: student.id,
@@ -348,6 +238,7 @@ const getPublicStudentProfileService = async (username) => {
             date: h.date,
             count: Number(h.count)
         })),
+        heatmapStartMonth: heatmapStartMonth.toISOString().split('T')[0],
         recentActivity: recentActivity.map((a) => ({
             question_name: a.question.question_name,
             question_link: a.question.question_link,

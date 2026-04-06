@@ -26,7 +26,7 @@ const createBatchService = async ({ batch_name, year, city_id, }) => {
         },
     });
     if (duplicate) {
-        throw new ApiError_1.ApiError(409, "Batch with same name and year already exists in this city");
+        throw new ApiError_1.ApiError(409, "Batch with same name and year already exists in this city", [], "BATCH_DUPLICATE");
     }
     if (!city.city_name) {
         throw new ApiError_1.ApiError(500, "City name is missing", [], "SERVER_ERROR");
@@ -98,7 +98,7 @@ const updateBatchService = async ({ id, batch_name, year, city_id, }) => {
         },
     });
     if (duplicate) {
-        throw new ApiError_1.ApiError(400, "Batch with same name and year already exists in this city");
+        throw new ApiError_1.ApiError(400, "Batch with same name and year already exists in this city", [], "BATCH_DUPLICATE");
     }
     // Detect if relevant fields changed
     const batchNameChanged = batch_name && batch_name !== existingBatch.batch_name;

@@ -194,6 +194,8 @@ const getAllQuestionsWithFiltersService = async ({ studentId, batchId, filters }
     ]);
     const solvedQuestionIds = new Set(studentProgress.map(progress => progress.question_id));
     const bookmarkedQuestionIds = new Set(studentBookmarks.map(bookmark => bookmark.question_id));
+    console.log('🔍 DEBUG - studentBookmarks:', studentBookmarks);
+    console.log('🔍 DEBUG - bookmarkedQuestionIds:', Array.from(bookmarkedQuestionIds));
     // Convert to array and apply filters
     let questions = Array.from(uniqueQuestions.values()).map((question) => ({
         ...question,

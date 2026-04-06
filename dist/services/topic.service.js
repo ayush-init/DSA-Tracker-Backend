@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTopicProgressByUsernameService = exports.createTopicsBulkService = exports.getTopicOverviewWithClassesSummaryService = exports.getTopicsWithBatchProgressService = exports.deleteTopicService = exports.updateTopicService = exports.getTopicsForBatchService = exports.getAllTopicsService = exports.createTopicService = void 0;
+exports.getPaginatedTopicsService = exports.getTopicProgressByUsernameService = exports.createTopicsBulkService = exports.getTopicOverviewWithClassesSummaryService = exports.getTopicsWithBatchProgressService = exports.deleteTopicService = exports.updateTopicService = exports.getTopicsForBatchService = exports.getAllTopicsService = exports.createTopicService = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
 const transliteration_1 = require("transliteration");
 const s3_service_1 = require("../services/s3.service");
@@ -356,17 +356,40 @@ const deleteTopicService = async ({ topicSlug }) => {
     return true;
 };
 exports.deleteTopicService = deleteTopicService;
-const getTopicsWithBatchProgressService = async ({ studentId, batchId, }) => {
-    // Get all topics with batch-specific classes and question counts
+const getTopicsWithBatchProgressService = async ({ studentId, batchId, query, }) => {
+    const page = parseInt(query?.page) || 1;
+    const limit = parseInt(query?.limit) || 10;
+    const skip = (page - 1) * limit;
+    const search = query?.search;
+    // Build where condition for search
+    const whereCondition = {};
+    if (search) {
+        whereCondition.OR = [
+            { topic_name: { contains: search, mode: 'insensitive' } },
+            { slug: { contains: search, mode: 'insensitive' } }
+        ];
+    }
+    // Get total count for pagination
+    const totalCount = await prisma_1.default.topic.count({
+        where: whereCondition
+    });
+    // Get paginated topics with optimized includes
     const topics = await prisma_1.default.topic.findMany({
-        include: {
+        where: whereCondition,
+        select: {
+            id: true,
+            topic_name: true,
+            slug: true,
+            photo_url: true,
             classes: {
                 where: {
                     batch_id: batchId
                 },
-                include: {
+                select: {
+                    created_at: true,
                     questionVisibility: {
-                        include: {
+                        select: {
+                            question_id: true,
                             question: {
                                 select: {
                                     id: true,
@@ -378,9 +401,12 @@ const getTopicsWithBatchProgressService = async ({ studentId, batchId, }) => {
                 },
                 orderBy: { created_at: 'asc' }
             }
-        }
+        },
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit
     });
-    // Get all question IDs assigned to this batch
+    // Collect all question IDs from the paginated topics only
     const assignedQuestionIds = new Set();
     topics.forEach((topic) => {
         topic.classes.forEach((cls) => {
@@ -389,7 +415,7 @@ const getTopicsWithBatchProgressService = async ({ studentId, batchId, }) => {
             });
         });
     });
-    // Get student's solved questions for this batch only
+    // Get student progress only for the questions we need
     const studentProgress = await prisma_1.default.studentProgress.findMany({
         where: {
             student_id: studentId,
@@ -412,7 +438,7 @@ const getTopicsWithBatchProgressService = async ({ studentId, batchId, }) => {
         }
         solvedByTopic.get(topicId).add(progress.question_id);
     });
-    // Format response
+    // Format response with optimized processing
     const formattedTopics = topics.map((topic) => {
         // Count unique questions assigned to this batch for this topic
         const assignedQuestions = new Set();
@@ -462,7 +488,15 @@ const getTopicsWithBatchProgressService = async ({ studentId, batchId, }) => {
         // Neither has classes - keep original order
         return 0;
     });
-    return formattedTopics;
+    return {
+        topics: formattedTopics,
+        pagination: {
+            total: totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+            page,
+            limit
+        }
+    };
 };
 exports.getTopicsWithBatchProgressService = getTopicsWithBatchProgressService;
 const getTopicOverviewWithClassesSummaryService = async ({ studentId, batchId, topicSlug, query, }) => {
@@ -640,3 +674,38 @@ const getTopicProgressByUsernameService = async (username) => {
     };
 };
 exports.getTopicProgressByUsernameService = getTopicProgressByUsernameService;
+const getPaginatedTopicsService = async ({ page = 1, limit = 6, search = '' }) => {
+    const skip = (page - 1) * limit;
+    const whereCondition = {};
+    if (search) {
+        whereCondition.OR = [
+            { topic_name: { contains: search, mode: 'insensitive' } },
+            { slug: { contains: search, mode: 'insensitive' } }
+        ];
+    }
+    const [topics, totalCount] = await Promise.all([
+        prisma_1.default.topic.findMany({
+            where: whereCondition,
+            select: {
+                id: true,
+                topic_name: true,
+                slug: true,
+            },
+            orderBy: { topic_name: 'asc' },
+            skip,
+            take: limit,
+        }),
+        prisma_1.default.topic.count({ where: whereCondition })
+    ]);
+    return {
+        topics,
+        pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(totalCount / limit),
+            totalItems: totalCount,
+            hasNextPage: page < Math.ceil(totalCount / limit),
+            hasPrevPage: page > 1,
+        }
+    };
+};
+exports.getPaginatedTopicsService = getPaginatedTopicsService;

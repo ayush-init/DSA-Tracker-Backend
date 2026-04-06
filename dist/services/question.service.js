@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAssignedQuestionsService = exports.deleteQuestionService = exports.updateQuestionService = exports.getAllQuestionsService = exports.createQuestionService = void 0;
+exports.getAssignedQuestionsService = exports.deleteQuestionService = exports.updateQuestionService = exports.getAllQuestionsService = exports.createQuestionService = exports.detectPlatform = void 0;
 const client_1 = require("@prisma/client");
 const prisma_1 = __importDefault(require("../config/prisma"));
 const ApiError_1 = require("../utils/ApiError");
@@ -17,6 +17,7 @@ const detectPlatform = (link) => {
         return client_1.Platform.INTERVIEWBIT;
     return client_1.Platform.OTHER;
 };
+exports.detectPlatform = detectPlatform;
 const createQuestionService = async ({ question_name, question_link, topic_id, platform, level = "MEDIUM", type = "HOMEWORK", }) => {
     if (!question_name || !question_link || !topic_id) {
         throw new ApiError_1.ApiError(400, "All required fields must be provided");
@@ -29,7 +30,7 @@ const createQuestionService = async ({ question_name, question_link, topic_id, p
         throw new ApiError_1.ApiError(400, "Topic not found");
     }
     // Auto detect platform if not provided
-    const finalPlatform = platform ?? detectPlatform(question_link);
+    const finalPlatform = platform ?? (0, exports.detectPlatform)(question_link);
     // Prevent duplicate question link (must be unique across all topics)
     const duplicate = await prisma_1.default.question.findFirst({
         where: {

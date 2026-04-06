@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
-import { createTopicService, deleteTopicService, getAllTopicsService, getTopicsForBatchService, updateTopicService, getTopicsWithBatchProgressService, getTopicOverviewWithClassesSummaryService, getTopicProgressByUsernameService, createTopicsBulkService } from "../services/topic.service";
+import { createTopicService, deleteTopicService, getAllTopicsService, getTopicsForBatchService, updateTopicService, getTopicsWithBatchProgressService, getTopicOverviewWithClassesSummaryService, getTopicProgressByUsernameService, createTopicsBulkService, getPaginatedTopicsService } from "../services/topic.service";
 import { upload } from "../middlewares/upload.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
@@ -180,6 +180,17 @@ export const getTopicProgressByUsername = asyncHandler(async (req: Request, res:
     student: result.student,
     topics: sortedTopics,
   });
+});
+
+// Get paginated topics for dropdown
+export const getPaginatedTopics = asyncHandler(async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 6;
+  const search = (req.query.search as string) || '';
+
+  const result = await getPaginatedTopicsService({ page, limit, search });
+
+  return res.json(result);
 });
 
 

@@ -3,12 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bulkTestUploadQuestions = exports.getTopicProgressByUsername = exports.createTopicsBulk = exports.getTopicOverviewWithClassesSummary = exports.getTopicsWithBatchProgress = exports.deleteTopic = exports.updateTopic = exports.getTopicsForBatch = exports.getAllTopics = exports.createTopic = void 0;
+exports.bulkTestUploadQuestions = exports.getPaginatedTopics = exports.getTopicProgressByUsername = exports.createTopicsBulk = exports.getTopicOverviewWithClassesSummary = exports.getTopicsWithBatchProgress = exports.deleteTopic = exports.updateTopic = exports.getTopicsForBatch = exports.getAllTopics = exports.createTopic = void 0;
 const prisma_1 = __importDefault(require("../config/prisma"));
 const topic_service_1 = require("../services/topic.service");
 const asyncHandler_1 = require("../utils/asyncHandler");
 const ApiError_1 = require("../utils/ApiError");
 const slugify_1 = require("../utils/slugify");
+const question_service_1 = require("../services/question.service");
 exports.createTopic = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     console.log("Create Topic req.body:", req.body);
     const topic_name = req.body?.topic_name;
@@ -76,6 +77,7 @@ exports.getTopicsWithBatchProgress = (0, asyncHandler_1.asyncHandler)(async (req
     const topics = await (0, topic_service_1.getTopicsWithBatchProgressService)({
         studentId,
         batchId,
+        query: req.query,
     });
     return res.json(topics);
 });
@@ -144,6 +146,14 @@ exports.getTopicProgressByUsername = (0, asyncHandler_1.asyncHandler)(async (req
         topics: sortedTopics,
     });
 });
+// Get paginated topics for dropdown
+exports.getPaginatedTopics = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const search = req.query.search || '';
+    const result = await (0, topic_service_1.getPaginatedTopicsService)({ page, limit, search });
+    return res.json(result);
+});
 exports.bulkTestUploadQuestions = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const file = req.file;
     if (!file) {
@@ -210,13 +220,14 @@ exports.bulkTestUploadQuestions = (0, asyncHandler_1.asyncHandler)(async (req, r
     if (missingSlugs.length > 0) {
         throw new ApiError_1.ApiError(400, `Invalid topic slugs: ${missingSlugs.join(', ')}`, [], "INVALID_TOPIC");
     }
-    // Create questions with topic IDs
+    // Create questions with topic IDs and detected platform
     const questionsData = validatedQuestions.map(q => ({
         question_name: q.question_name,
         question_link: q.question_link,
         level: q.level,
         type: q.type,
         topic_id: topicMap.get(q.topic_slug), // We know this exists after validation
+        platform: (0, question_service_1.detectPlatform)(q.question_link), // Detect platform from question link
     }));
     const created = await prisma_1.default.question.createMany({
         data: questionsData,

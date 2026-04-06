@@ -98,6 +98,10 @@ model Topic {
   updated_at  DateTime   @updatedAt
   classes     Class[]
   questions   Question[]
+
+  @@index([topic_name])
+  @@index([slug])
+  @@index([created_at])
 }
 
 model Question {
@@ -138,6 +142,8 @@ model Class {
   @@unique([topic_id, batch_id, class_name])
   @@index([batch_id])
   @@index([topic_id])
+  @@index([batch_id, topic_id])
+  @@index([created_at])
 }
 
 model QuestionVisibility {
@@ -163,6 +169,7 @@ model StudentProgress {
   @@unique([student_id, question_id])
   @@index([student_id])
   @@index([question_id])
+  @@index([student_id, question_id])
 }
 
 model Leaderboard {

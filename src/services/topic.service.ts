@@ -424,16 +424,42 @@ export const getTopicsWithBatchProgressService = async ({
   batchId,
   query,
 }: GetTopicsWithBatchProgressInput) => {
-  // Get all topics with batch-specific classes and question counts
+  const page = parseInt(query?.page as string) || 1;
+  const limit = parseInt(query?.limit as string) || 10;
+  const skip = (page - 1) * limit;
+  const search = query?.search as string;
+
+  // Build where condition for search
+  const whereCondition: any = {};
+  if (search) {
+    whereCondition.OR = [
+      { topic_name: { contains: search, mode: 'insensitive' } },
+      { slug: { contains: search, mode: 'insensitive' } }
+    ];
+  }
+
+  // Get total count for pagination
+  const totalCount = await prisma.topic.count({
+    where: whereCondition
+  });
+
+  // Get paginated topics with optimized includes
   const topics = await prisma.topic.findMany({
-    include: {
+    where: whereCondition,
+    select: {
+      id: true,
+      topic_name: true,
+      slug: true,
+      photo_url: true,
       classes: {
         where: {
           batch_id: batchId
         },
-        include: {
+        select: {
+          created_at: true,
           questionVisibility: {
-            include: {
+            select: {
+              question_id: true,
               question: {
                 select: {
                   id: true,
@@ -445,10 +471,13 @@ export const getTopicsWithBatchProgressService = async ({
         },
         orderBy: { created_at: 'asc' }
       }
-    }
+    },
+    orderBy: { created_at: 'desc' },
+    skip,
+    take: limit
   });
 
-  // Get all question IDs assigned to this batch
+  // Collect all question IDs from the paginated topics only
   const assignedQuestionIds = new Set<number>();
   topics.forEach((topic: any) => {
     topic.classes.forEach((cls: any) => {
@@ -458,7 +487,7 @@ export const getTopicsWithBatchProgressService = async ({
     });
   });
 
-  // Get student's solved questions for this batch only
+  // Get student progress only for the questions we need
   const studentProgress = await prisma.studentProgress.findMany({
     where: {
       student_id: studentId,
@@ -483,7 +512,7 @@ export const getTopicsWithBatchProgressService = async ({
     solvedByTopic.get(topicId)!.add(progress.question_id);
   });
 
-  // Format response
+  // Format response with optimized processing
   const formattedTopics = topics.map((topic: any) => {
     // Count unique questions assigned to this batch for this topic
     const assignedQuestions = new Set<number>();
@@ -539,26 +568,11 @@ export const getTopicsWithBatchProgressService = async ({
     return 0;
   });
 
-  // Apply search filter if provided
-  let filteredTopics = formattedTopics;
-  if (query?.search) {
-    filteredTopics = formattedTopics.filter(topic =>
-      topic.topic_name.toLowerCase().includes(query.search.toLowerCase())
-    );
-  }
-
-  // Apply pagination
-  const page = parseInt(query?.page as string) || 1;
-  const limit = parseInt(query?.limit as string) || 10;
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedTopics = filteredTopics.slice(startIndex, endIndex);
-
   return {
-    topics: paginatedTopics,
+    topics: formattedTopics,
     pagination: {
-      total: filteredTopics.length,
-      totalPages: Math.ceil(filteredTopics.length / limit),
+      total: totalCount,
+      totalPages: Math.ceil(totalCount / limit),
       page,
       limit
     }
@@ -773,5 +787,51 @@ export const getTopicProgressByUsernameService = async (username: string) => {
       batch: student.batch
     },
     topics: topicsWithProgress
+  };
+};
+
+export const getPaginatedTopicsService = async ({ 
+  page = 1, 
+  limit = 6, 
+  search = '' 
+}: { 
+  page?: number; 
+  limit?: number; 
+  search?: string; 
+}) => {
+  const skip = (page - 1) * limit;
+
+  const whereCondition: any = {};
+  if (search) {
+    whereCondition.OR = [
+      { topic_name: { contains: search, mode: 'insensitive' } },
+      { slug: { contains: search, mode: 'insensitive' } }
+    ];
+  }
+
+  const [topics, totalCount] = await Promise.all([
+    prisma.topic.findMany({
+      where: whereCondition,
+      select: {
+        id: true,
+        topic_name: true,
+        slug: true,
+      },
+      orderBy: { topic_name: 'asc' },
+      skip,
+      take: limit,
+    }),
+    prisma.topic.count({ where: whereCondition })
+  ]);
+
+  return {
+    topics,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalItems: totalCount,
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPrevPage: page > 1,
+    }
   };
 };
