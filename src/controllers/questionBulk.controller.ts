@@ -14,13 +14,18 @@ export const bulkUploadQuestions = asyncHandler(async (
 
             const { topic_id } = req.body;
 
-            if (!topic_id) {
-              throw new ApiError(400, "Topic ID is required",);
+            if (!topic_id || topic_id === "undefined" || topic_id === "null") {
+              throw new ApiError(400, "Topic  is required");
+            }
+
+            const parsedTopicId = Number(topic_id);
+            if (isNaN(parsedTopicId) || parsedTopicId <= 0) {
+              throw new ApiError(400, "Invalid Topic x    ");
             }
 
             const result = await bulkUploadQuestionsService(
               req.file.buffer,
-              Number(topic_id)
+              parsedTopicId
             );
 
             return res.json({
