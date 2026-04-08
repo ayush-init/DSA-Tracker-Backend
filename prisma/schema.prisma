@@ -240,4 +240,5 @@ model Bookmark {
   @@unique([student_id, question_id])
   @@index([student_id])
   @@index([question_id])
+  @@index([student_id, created_at])
 }
