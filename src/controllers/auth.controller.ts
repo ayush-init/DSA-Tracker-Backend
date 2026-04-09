@@ -1,14 +1,38 @@
+/**
+ * Authentication Controller - User authentication endpoints
+ * Handles user registration, login, and authentication token management
+ * Provides secure access control for the application
+ */
+
 import { Request, Response } from 'express';
-
 import { asyncHandler } from "../utils/asyncHandler";
-
-import * as authService from '../services/auth.service';
+import { ApiError } from "../utils/ApiError";
+import { ExtendedRequest } from "../types";
+import {
+  loginStudent as loginStudentService,
+  loginAdmin as loginAdminService,
+  googleAuth as googleAuthService,
+  refreshAccessToken as refreshAccessTokenService
+} from '../services/auth/auth-login.service';
+import {
+  logoutStudent as logoutStudentService,
+  logoutAdmin as logoutAdminService
+} from '../services/auth/auth-logout.service';
+import {
+  sendPasswordResetOTP as sendPasswordResetOTPService,
+  verifyOTP as verifyOTPService,
+  resetPassword as resetPasswordService
+} from '../services/auth/auth-password.service';
+import {
+  registerStudent as registerStudentService,
+  registerAdmin as registerAdminService
+} from '../services/auth/auth-register.service';
 
 // Student Registration
 
 export const registerStudent = asyncHandler(async (req: Request, res: Response) => {
 
-  const student = await authService.registerStudent(req.body);
+  const student = await registerStudentService(req.body);
 
 
 
@@ -28,7 +52,7 @@ export const registerStudent = asyncHandler(async (req: Request, res: Response) 
 
 export const loginStudent = asyncHandler(async (req: Request, res: Response) => {
 
-  const { user, accessToken, refreshToken } = await authService.loginStudent(req.body);
+  const { user, accessToken, refreshToken } = await loginStudentService(req.body);
 
   
 
@@ -68,7 +92,7 @@ export const loginStudent = asyncHandler(async (req: Request, res: Response) => 
 
 export const registerAdmin = asyncHandler(async (req: Request, res: Response) => {
 
-  const { user, accessToken, refreshToken } = await authService.registerAdmin({
+  const { user, accessToken, refreshToken } = await registerAdminService({
 
     ...req.body,
 
@@ -96,7 +120,7 @@ export const registerAdmin = asyncHandler(async (req: Request, res: Response) =>
 
 export const loginAdmin = asyncHandler(async (req: Request, res: Response) => {
 
-  const { user, accessToken, refreshToken } = await authService.loginAdmin(req.body);
+  const { user, accessToken, refreshToken } = await loginAdminService(req.body);
 
   
 
@@ -136,7 +160,7 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response) => 
 
   const refreshToken = req.cookies.refreshToken;
 
-  const { accessToken } = await authService.refreshAccessToken(refreshToken);
+  const { accessToken } = await refreshAccessTokenService(refreshToken);
 
   
 
@@ -150,7 +174,7 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
 
   const { idToken } = req.body;
 
-  const { user, accessToken, refreshToken } = await authService.googleAuth(idToken);
+  const { user, accessToken, refreshToken } = await googleAuthService(idToken);
 
   
 
@@ -188,37 +212,33 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
 
 // Student Logout
 
-export const logoutStudent = asyncHandler(async (req: Request, res: Response) => {
+export const logoutStudent = asyncHandler(async (req: ExtendedRequest, res: Response) => {
+  const student = req.student;
+  if (!student) {
+    throw new ApiError(401, "Authentication required - student information missing");
+  }
 
-  const studentId = (req as any).student?.id;
-
-  await authService.logoutStudent(studentId);
-
-  
+  await logoutStudentService(student.id);
 
   // Clear refresh token cookie
-
   res.clearCookie('refreshToken');
 
-
-
   res.json({
-
     message: "Student logout successful",
-
   });
-
 });
 
 
 
 // Admin Logout
 
-export const logoutAdmin = asyncHandler(async (req: Request, res: Response) => {
+export const logoutAdmin = asyncHandler(async (req: ExtendedRequest, res: Response) => {
+  const admin = req.admin;
+  if (!admin) {
+    throw new ApiError(401, "Authentication required - admin information missing");
+  }
 
-  const adminId = (req as any).admin?.id;
-
-  await authService.logoutAdmin(adminId);
+  await logoutAdminService(admin.id);
 
   
 
@@ -244,7 +264,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
 
   const { email } = req.body;
 
-  const result = await authService.sendPasswordResetOTP(email);
+  const result = await sendPasswordResetOTPService(email);
 
   
 
@@ -260,7 +280,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 
   const { email, otp } = req.body;
 
-  const result = await authService.verifyOTP(email, otp);
+  const result = await verifyOTPService(email, otp);
 
   
 
@@ -276,7 +296,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
 
   const { email, otp, newPassword } = req.body;
 
-  const result = await authService.resetPassword(email, otp, newPassword);
+  const result = await resetPasswordService(email, otp, newPassword);
 
   
 

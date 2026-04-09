@@ -1,25 +1,53 @@
+/**
+ * Authentication Middleware - JWT token verification
+ * Verifies Bearer tokens and extracts user information for authenticated requests
+ * Provides secure authentication middleware for protected routes
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt.util";
+import { AccessTokenPayload } from "../types/auth.types";
 import { ApiError } from "../utils/ApiError";
 
-export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  console.log("Auth Header:", authHeader);
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new ApiError(401, "No token provided");
+// Extend Express Request interface to include user information
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AccessTokenPayload;
+    }
   }
+}
+
+/**
+ * Verify JWT token and extract user information
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ * @throws ApiError if token is missing, invalid, or malformed
+ */
+export const verifyToken = (req: Request, res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+
+  // Check if authorization header exists and has Bearer prefix
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new ApiError(401, "No token provided or invalid token format", [], "NO_TOKEN");
+  }
+  
+  // Extract token from Bearer header
   const token = authHeader.split(" ")[1];
-  console.log("Token:", token);
-  console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
+  
+  if (!token) {
+    throw new ApiError(401, "Token is required", [], "MISSING_TOKEN");
+  }
 
   try {
     const decoded = verifyAccessToken(token);
-    console.log("Decoded:", decoded);
     req.user = decoded;
     next();
-  } catch (error) {
-    console.error("Token verification error:", error);
-    throw new ApiError(401, "Invalid token");
+  } catch (error: unknown) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(401, "Invalid or expired token", [], "INVALID_TOKEN");
   }
 };

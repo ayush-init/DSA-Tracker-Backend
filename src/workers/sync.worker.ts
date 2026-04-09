@@ -1,5 +1,5 @@
 import prisma from "../config/prisma";
-import { syncOneStudent } from "../services/progressSync.service";
+import { syncOneStudent } from "../services/progressSync/sync-core.service";
 
 export async function runStudentSyncWorker() {
 

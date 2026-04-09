@@ -3,15 +3,7 @@
  * Calculates current streak and max streak based on student progress dates
  */
 
-export interface StreakResult {
-  currentStreak: number;
-  maxStreak: number;
-}
-
-export interface QuestionAvailability {
-  date: string;
-  hasQuestion: boolean;
-}
+import { StreakResult, QuestionAvailability } from "../types/utility.types";
 
 /**
  * Calculate streak based on daily problem solving activity
@@ -218,74 +210,6 @@ export function calculateStreakWithFreeze(syncDates: Date[], questionAvailabilit
   };
 }
 
-/**
- * Alternative streak calculation based on consecutive days with activity
- * More lenient - considers any activity within a day as maintaining streak
- */
-export function calculateStreakByActivity(activityDates: Date[]): StreakResult {
-  if (activityDates.length === 0) {
-    return { currentStreak: 0, maxStreak: 0 };
-  }
-
-  // Group activities by day
-  const activitiesByDay = new Map<string, number>();
-  
-  activityDates.forEach(date => {
-    const dayKey = date.toISOString().split('T')[0];
-    activitiesByDay.set(dayKey, (activitiesByDay.get(dayKey) || 0) + 1);
-  });
-
-  // Sort days
-  const sortedDays = Array.from(activitiesByDay.keys()).sort().reverse();
-  
-  let currentStreak = 0;
-  let maxStreak = 0;
-  let tempStreak = 0;
-  
-  const today = new Date().toISOString().split('T')[0];
-  let expectedDate = new Date(today);
-  
-  // Calculate current streak
-  for (const dayStr of sortedDays) {
-    const expectedDateStr = expectedDate.toISOString().split('T')[0];
-    
-    if (dayStr === expectedDateStr) {
-      currentStreak++;
-      expectedDate.setDate(expectedDate.getDate() - 1);
-    } else if (dayStr < expectedDateStr) {
-      break;
-    }
-  }
-  
-  // Calculate max streak
-  let previousDay: string | null = null;
-  
-  for (const dayStr of sortedDays) {
-    if (previousDay === null) {
-      tempStreak = 1;
-    } else {
-      const prevDate = new Date(previousDay);
-      const currDate = new Date(dayStr);
-      const daysDiff = Math.floor((prevDate.getTime() - currDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (daysDiff === 1) {
-        tempStreak++;
-      } else {
-        maxStreak = Math.max(maxStreak, tempStreak);
-        tempStreak = 1;
-      }
-    }
-    
-    previousDay = dayStr;
-  }
-  
-  maxStreak = Math.max(maxStreak, tempStreak);
-  
-  return {
-    currentStreak,
-    maxStreak
-  };
-}
 
 /**
  * Calculate streak based on completion status

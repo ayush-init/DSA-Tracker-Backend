@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkUsernameAvailability } from "../controllers/username.controller";
+import { checkUsernameAvailability } from "../controllers/student.controller";
 
 const router = Router();
 

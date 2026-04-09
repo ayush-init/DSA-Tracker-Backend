@@ -1,16 +1,7 @@
 import prisma from "../config/prisma";
-import { createClassInTopicService } from "../services/class.service";
-import { assignQuestionsToClassService } from "../services/questionVisibility.service";
-
-interface ClassCreationResult {
-  batchId: number;
-  batchName: string;
-  topicId: number;
-  topicName: string;
-  classesCreated: number;
-  questionsAssigned: number;
-  errors?: string[];
-}
+import { createClassInTopicService } from "../services/topics/class.service";
+import { assignQuestionsToClassService } from "../services/questions/visibility.service";
+import { ClassCreationResult } from "../types/utility.types";
 
 // Add progress tracking
 let processedCount = 0;
@@ -163,7 +154,10 @@ async function main() {
                   batchId: batch.id,
                   topicSlug: topic.slug,
                   classSlug: newClass.slug,
-                  questionIds: questionsToAssign
+                  questions: questionsToAssign.map(questionId => ({
+                    question_id: questionId,
+                    type: "HOMEWORK" as const
+                  }))
                 });
 
                 result.questionsAssigned += questionsToAssign.length;

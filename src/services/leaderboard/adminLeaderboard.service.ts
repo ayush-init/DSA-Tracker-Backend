@@ -1,9 +1,6 @@
 import prisma from "../../config/prisma";
 import {
-  buildLeaderboardBaseQuery,
-  buildSelectClause,
-  buildFromClause,
-  normalizeLeaderboardRow,
+  buildLeaderboardBaseQueryByCityId,
   getCachedCityYearMapping,
   handleLeaderboardError,
 } from "./leaderboard.shared";
@@ -46,12 +43,57 @@ export async function getAdminLeaderboard(
       search,
     };
 
-    // Build base query
-    const { whereClause, orderByClause, params, nextParamIndex } = 
-      buildLeaderboardBaseQuery(effectiveFilters);
+    // Look up city ID from city name when a specific city is selected
+    let effectiveCityId: number | undefined = undefined;
+    if (effectiveFilters.city && effectiveFilters.city !== "all") {
+      const cityRecord = await prisma.city.findFirst({
+        where: { city_name: effectiveFilters.city },
+        select: { id: true }
+      });
+      if (cityRecord) {
+        effectiveCityId = cityRecord.id;
+      }
+    }
 
-    const selectClause = buildSelectClause();
-    const fromClause = buildFromClause();
+    // Build base query using city_id (integer comparison - much faster)
+    const { whereClause, orderByClause, params } = buildLeaderboardBaseQueryByCityId(
+      effectiveFilters.year,
+      effectiveCityId,
+      effectiveFilters.search
+    );
+
+    const selectClause = `
+      SELECT 
+        l.alltime_global_rank as global_rank,
+        l.alltime_city_rank as city_rank,
+        s.id as student_id,
+        s.name,
+        s.username,
+        s.profile_image_url,
+        c.city_name,
+        b.year as batch_year,
+        l.hard_solved,
+        l.medium_solved,
+        l.easy_solved,
+        l.max_streak,
+        l.hard_solved + l.medium_solved + l.easy_solved AS total_solved,
+        b.hard_assigned,
+        b.medium_assigned,
+        b.easy_assigned,
+        ROUND(
+          (l.hard_solved::numeric / NULLIF(b.hard_assigned, 0) * 2000) +
+          (l.medium_solved::numeric / NULLIF(b.medium_assigned, 0) * 1500) +
+          (l.easy_solved::numeric / NULLIF(b.easy_assigned, 0) * 1000), 2
+        ) AS score,
+        l.last_calculated
+    `;
+    
+    const fromClause = `
+      FROM "Leaderboard" l
+      JOIN "Student" s ON s.id = l.student_id
+      JOIN "Batch" b ON b.id = s.batch_id
+      JOIN "City" c ON c.id = s.city_id
+    `;
 
     // Build count query - optimized to start from Leaderboard
     const countQuery = `
@@ -72,7 +114,7 @@ export async function getAdminLeaderboard(
       ${fromClause}
       ${whereClause}
       ${orderByClause}
-      LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
 
     // Execute count and data queries in parallel
@@ -82,7 +124,23 @@ export async function getAdminLeaderboard(
     ]);
 
     const total = Number((countResult as any[])[0]?.total || 0);
-    const leaderboard = (leaderboardData as any[]).map(normalizeLeaderboardRow);
+    const leaderboard = (leaderboardData as any[]).map((row: any) => ({
+      global_rank: Number(row.global_rank),
+      city_rank: Number(row.city_rank),
+      student_id: Number(row.student_id),
+      name: row.name,
+      username: row.username,
+      profile_image_url: row.profile_image_url,
+      city_name: row.city_name,
+      batch_year: Number(row.batch_year),
+      hard_solved: Number(row.hard_solved) || 0,
+      medium_solved: Number(row.medium_solved) || 0,
+      easy_solved: Number(row.easy_solved) || 0,
+      max_streak: Number(row.max_streak) || 0,
+      total_solved: Number(row.total_solved) || 0,
+      score: Number(row.score) || 0,
+      last_calculated: row.last_calculated
+    }));
 
     // Get metadata (cached) in parallel
     const [availableCities, lastCalculated] = await Promise.all([

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { generateBatchReportCSV } from "../services/csv.service";
+import { generateBatchReportCSV } from "../services/admin/csv.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 
@@ -7,12 +7,8 @@ export const downloadBatchReportController = asyncHandler(async (req: Request, r
             try {
                 const { batch_id } = req.body;
                 
-                console.log('Controller: Received request for batch_id:', batch_id);
-
                 // Generate CSV report (service handles validation)
                 const { csvContent, filename } = await generateBatchReportCSV(batch_id);
-                
-                console.log('Controller: Service returned filename:', filename);
 
                 // Set headers for CSV download
                 res.setHeader('Content-Type', 'text/csv');
@@ -20,8 +16,6 @@ export const downloadBatchReportController = asyncHandler(async (req: Request, r
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');
-                
-                console.log('Controller: Response headers set with filename:', filename);
 
                 return res.status(200).json({
                     success: true,

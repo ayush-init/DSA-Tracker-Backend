@@ -64,46 +64,6 @@ export function buildLeaderboardBaseQueryByCityId(
 }
 
 /**
- * Build base WHERE and ORDER BY clauses for leaderboard queries (legacy, for admin)
- */
-export function buildLeaderboardBaseQuery(filters: Filters): BaseQueryResult {
-  const { city, year, search } = filters;
-  
-  // Year is required
-  const effectiveYear = year || new Date().getFullYear();
-  
-  const params: any[] = [effectiveYear];
-  let whereClause = `WHERE b.year = $1`;
-  let paramIndex = 2;
-  
-  // City filter (optional) - by city_name for backward compatibility
-  if (city && city !== "all") {
-    whereClause += ` AND c.city_name = $${paramIndex}`;
-    params.push(city);
-    paramIndex++;
-  }
-  
-  // Search filter (optional)
-  if (search) {
-    whereClause += ` AND (s.name ILIKE $${paramIndex} OR s.username ILIKE $${paramIndex + 1})`;
-    params.push(`%${search}%`, `%${search}%`);
-    paramIndex += 2;
-  }
-  
-  // Order by logic: global rank for 'all', city rank for specific city
-  const orderByClause = city && city !== "all"
-    ? `ORDER BY l.alltime_city_rank ASC`
-    : `ORDER BY l.alltime_global_rank ASC`;
-  
-  return {
-    whereClause,
-    orderByClause,
-    params,
-    nextParamIndex: paramIndex,
-  };
-}
-
-/**
  * Get cached available years
  */
 export async function getCachedYears(): Promise<number[]> {
@@ -199,80 +159,7 @@ export async function getAvailableYears(): Promise<number[]> {
 }
 
 /**
- * Clear metadata cache (useful for testing or admin operations)
- */
-export function clearMetadataCache(): void {
-  metadataCache.years = null;
-  metadataCache.cityYearMap = null;
-}
-
-/**
- * Build the SELECT clause for leaderboard queries
- */
-export function buildSelectClause(): string {
-  return `
-    SELECT
-      s.id AS student_id,
-      s.name,
-      s.username,
-      s.profile_image_url,
-      c.city_name,
-      b.year AS batch_year,
-      l.hard_solved,
-      l.medium_solved,
-      l.easy_solved,
-      l.hard_solved + l.medium_solved + l.easy_solved AS total_solved,
-      l.current_streak,
-      l.max_streak,
-      ROUND(
-        (l.hard_solved::numeric / NULLIF(b.hard_assigned, 0) * 2000) +
-        (l.medium_solved::numeric / NULLIF(b.medium_assigned, 0) * 1500) +
-        (l.easy_solved::numeric / NULLIF(b.easy_assigned, 0) * 1000), 2
-      ) AS score,
-      l.alltime_global_rank,
-      l.alltime_city_rank,
-      l.last_calculated
-  `;
-}
-
-/**
- * Build the FROM clause with JOINs - Optimized to start from Leaderboard
- */
-export function buildFromClause(): string {
-  return `
-    FROM "Leaderboard" l
-    JOIN "Student" s ON s.id = l.student_id
-    JOIN "Batch" b ON b.id = s.batch_id
-    JOIN "City" c ON c.id = s.city_id
-  `;
-}
-
-/**
- * Normalize leaderboard row data
- */
-export function normalizeLeaderboardRow(row: any): any {
-  return {
-    student_id: row.student_id,
-    name: row.name,
-    username: row.username,
-    profile_image_url: row.profile_image_url,
-    city_name: row.city_name,
-    batch_year: row.batch_year,
-    hard_solved: Number(row.hard_solved),
-    medium_solved: Number(row.medium_solved),
-    easy_solved: Number(row.easy_solved),
-    total_solved: Number(row.total_solved),
-    current_streak: Number(row.current_streak),
-    max_streak: Number(row.max_streak),
-    score: Number(row.score) || 0,
-    alltime_global_rank: Number(row.alltime_global_rank),
-    alltime_city_rank: Number(row.alltime_city_rank),
-    last_calculated: row.last_calculated,
-  };
-}
-
-/**
- * Handle database errors consistently
+ * Handle leaderboard errors consistently
  */
 export function handleLeaderboardError(error: any, context: string): never {
   console.error(`${context} error:`, error);
@@ -281,25 +168,24 @@ export function handleLeaderboardError(error: any, context: string): never {
     throw error;
   }
   
-  if (error instanceof Error) {
-    if (error.message.includes("parameter")) {
-      throw new ApiError(
-        400,
-        `Database query parameter error: ${error.message}. This usually indicates a problem with SQL parameter binding.`
-      );
-    } else if (error.message.includes("42P02")) {
-      throw new ApiError(
-        400,
-        `Database parameter error: Invalid parameter placeholder in SQL query. Please check the query construction.`
-      );
-    } else if (error.message.includes("42703")) {
-      throw new ApiError(400, `Database column error: A referenced column does not exist. ${error.message}`);
-    } else if (error.message.includes("42P01")) {
-      throw new ApiError(400, `Database table error: A referenced table does not exist. ${error.message}`);
-    } else {
-      throw new ApiError(400, `${context} error: ${error.message}`);
-    }
+  // Handle Prisma errors
+  if (error.code === 'P2025') {
+    throw new ApiError(404, "Data not found", [], "NOT_FOUND");
   }
   
-  throw new ApiError(400, `Unknown ${context} error: ${String(error)}`);
+  // Handle database connection errors
+  if (error.code === 'ECONNREFUSED' || error.message?.includes('connection')) {
+    throw new ApiError(503, "Database connection failed", [], "DB_CONNECTION_ERROR");
+  }
+  
+  // Handle timeout errors
+  if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+    throw new ApiError(504, "Request timeout", [], "TIMEOUT_ERROR");
+  }
+  
+  // Generic error handling
+  throw new ApiError(500, `${context} failed`, [], "INTERNAL_ERROR");
 }
+
+
+

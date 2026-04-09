@@ -3,11 +3,11 @@ import { verifyToken } from "../middlewares/auth.middleware";
 import { isAdmin, isTeacherOrAbove } from "../middlewares/role.middleware";
 import { extractAdminInfo } from "../middlewares/admin.middleware";
 import { resolveBatch } from "../middlewares/batch.middleware";
+import { heavyLimiter, apiLimiter } from "../middlewares/rateLimiter";
 import {  getAllCities } from "../controllers/city.controller";
 import {  getAllBatches } from "../controllers/batch.controller";
 import { createTopic, deleteTopic, getAllTopics, getTopicsForBatch, updateTopic, createTopicsBulk, bulkTestUploadQuestions } from "../controllers/topic.controller";
-import { createQuestion, deleteQuestion, getAllQuestions, getAssignedQuestionsController, updateQuestion } from "../controllers/question.controller";
-import { bulkUploadQuestions } from "../controllers/questionBulk.controller";
+import { createQuestion, deleteQuestion, getAllQuestions, getAssignedQuestionsController, updateQuestion, bulkUploadQuestions } from "../controllers/question.controller";
 import { uploadImage } from "../middlewares/imageUpload.middleware";
 import { upload } from "../middlewares/upload.middleware";
 import { uploadPdf } from "../middlewares/pdfUpload.middleware";
@@ -21,7 +21,6 @@ import { addStudentProgressController, createStudentController, deleteStudentDet
 import { bulkStudentUploadController } from "../controllers/bulk.controller";
 
 const router = Router();
-
 
 router.use(verifyToken);
 router.use(isAdmin);
@@ -91,7 +90,7 @@ router.post("/stats", getAdminStats);
 // Roles
 router.get("/roles", getRolesController);
 
-router.post("/leaderboard", getAdminLeaderboard); // Single admin leaderboard with pagination and search
+router.post("/leaderboard", heavyLimiter, getAdminLeaderboard); // Single admin leaderboard with pagination and search
 
 router.patch("/students/:id", isTeacherOrAbove, isAdmin, updateStudentDetails);
 

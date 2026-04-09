@@ -1,63 +1,36 @@
+/**
+ * Admin Controller - Admin dashboard and management endpoints
+ * Handles admin statistics, role management, and admin profile operations
+ * Provides administrative functionality for system management
+ */
+
 import { Request, Response } from "express";
-
-import prisma from "../config/prisma";
-
 import { AdminRole } from "@prisma/client";
-
-import { getAdminStatsService, getCurrentAdminService } from "../services/admin.service";
-
-import { createAdminService, getAllAdminsService, updateAdminService, deleteAdminService } from "../services/admin.service";
-
-import { syncOneStudent } from "../services/progressSync.service";
-
+import { getAdminStatsService } from "../services/admin/admin-stats.service";
+import { getCurrentAdminService } from "../services/admin/admin-query.service";
+import { createAdminService, updateAdminService, deleteAdminService } from "../services/admin/admin-crud.service";
+import { getAllAdminsService } from "../services/admin/admin-query.service";
 import { asyncHandler } from "../utils/asyncHandler";
-
 import { ApiError } from "../utils/ApiError";
+import { ExtendedRequest } from "../types";
 
 
 
 
+export const getCurrentAdminController = asyncHandler(async (req: ExtendedRequest, res: Response) => {
+    // Get admin info from middleware (extracted from token)
+    const adminInfo = req.admin;
 
-export const getCurrentAdminController = asyncHandler(async (req: Request, res: Response) => {
-
-    try {
-
-        // Get admin info from middleware (extracted from token)
-
-        const adminInfo = (req as any).admin;
-
-
-
-        if (!adminInfo) {
-
-            throw new ApiError(401, "Admin not authenticated", [], "AUTH_ERROR");
-
-        }
-
-
-
-        const admin = await getCurrentAdminService(adminInfo.id);
-
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            data: admin
-
-        });
-
-
-
-    } catch (error) {
-
-        if (error instanceof ApiError) throw error;
-
-        throw new ApiError(500, "Failed to fetch current admin", [], "INTERNAL_SERVER_ERROR");
-
+    if (!adminInfo) {
+        throw new ApiError(401, "Admin not authenticated", [], "AUTH_ERROR");
     }
 
+    const admin = await getCurrentAdminService(adminInfo.id);
+
+    return res.status(200).json({
+        success: true,
+        data: admin
+    });
 });
 
 export const getAdminStats = asyncHandler(async (req: Request, res: Response) => {
@@ -94,7 +67,7 @@ export const getAdminStats = asyncHandler(async (req: Request, res: Response) =>
 
 
 
-    } catch (error) {
+    } catch (error: unknown) {
 
         if (error instanceof ApiError) throw error;
 
@@ -230,15 +203,15 @@ export const updateAdminController = asyncHandler(async (req: Request, res: Resp
 
 
 
-    } catch (error: any) {
+    } catch (error: unknown) {
 
         if (error instanceof ApiError) throw error;
 
-        const statusCode = error.message === 'Admin not found' ? 404 : 400;
+        const errorMessage = error instanceof Error ? error.message : "Failed to update admin";
+        const statusCode = errorMessage === 'Admin not found' ? 404 : 400;
+        const errorCode = errorMessage === 'Admin not found' ? 'ADMIN_NOT_FOUND' : 'ADMIN_UPDATE_ERROR';
 
-        const errorCode = error.message === 'Admin not found' ? 'ADMIN_NOT_FOUND' : 'ADMIN_UPDATE_ERROR';
-
-        throw new ApiError(statusCode, error.message || "Failed to update admin", [], errorCode);
+        throw new ApiError(statusCode, errorMessage, [], errorCode);
 
     }
 
@@ -276,15 +249,15 @@ export const deleteAdminController = asyncHandler(async (req: Request, res: Resp
 
 
 
-    } catch (error: any) {
+    } catch (error: unknown) {
 
         if (error instanceof ApiError) throw error;
 
-        const statusCode = error.message === 'Admin not found' ? 404 : 500;
+        const errorMessage = error instanceof Error ? error.message : "Failed to delete admin";
+        const statusCode = errorMessage === 'Admin not found' ? 404 : 500;
+        const errorCode = errorMessage === 'Admin not found' ? 'ADMIN_NOT_FOUND' : 'ADMIN_DELETE_ERROR';
 
-        const errorCode = error.message === 'Admin not found' ? 'ADMIN_NOT_FOUND' : 'ADMIN_DELETE_ERROR';
-
-        throw new ApiError(statusCode, error.message || "Failed to delete admin", [], errorCode);
+        throw new ApiError(statusCode, errorMessage, [], errorCode);
 
     }
 

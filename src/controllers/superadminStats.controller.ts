@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
-import { getCurrentSuperAdminService, getSuperAdminStatsService } from "../services/superadminStats.service";
+import { getCurrentSuperAdminService, getSuperAdminStatsService } from "../services/admin/superadminStats.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
+import { ExtendedRequest } from "../types";
 
-export const getCurrentSuperAdminController = asyncHandler(async (req: Request, res: Response) => {
-    try {
+export const getCurrentSuperAdminController = asyncHandler(async (req: ExtendedRequest, res: Response) => {
         // Get superadmin info from middleware (extracted from token)
-        const superadminInfo = (req as any).admin;
+        const superadminInfo = req.admin;
 
         if (!superadminInfo) {
             return res.status(401).json({
@@ -27,14 +27,6 @@ export const getCurrentSuperAdminController = asyncHandler(async (req: Request, 
                 role: superadmin.role
             }
         });
-
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        return res.status(500).json({
-            success: false,
-            message: error instanceof Error ? error.message : "Failed to fetch current superadmin"
-        });
-    }
 });
 
 

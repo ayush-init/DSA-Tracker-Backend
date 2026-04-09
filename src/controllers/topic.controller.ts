@@ -1,16 +1,18 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
-import { createTopicService, deleteTopicService, getAllTopicsService, getTopicsForBatchService, updateTopicService, getTopicsWithBatchProgressService, getTopicOverviewWithClassesSummaryService, getTopicProgressByUsernameService, createTopicsBulkService, getPaginatedTopicsService } from "../services/topic.service";
+import { createTopicService, deleteTopicService, updateTopicService, createTopicsBulkService } from "../services/topics/topic.service";
+import { getAllTopicsService, getTopicsForBatchService, getPaginatedTopicsService } from "../services/topics/topic-query.service";
+import { getTopicsWithBatchProgressService, getTopicOverviewWithClassesSummaryService, getTopicProgressByUsernameService } from "../services/topics/topic-progress.service";
 import { upload } from "../middlewares/upload.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { generateSlug } from "../utils/slugify";
-import { detectPlatform } from "../services/question.service";
+import { detectPlatform } from "../services/questions/question-utils.service";
+import { ExtendedRequest } from "../types";
 export const createTopic = asyncHandler(async (
   req: Request,
   res: Response
 ) => {
-  console.log("Create Topic req.body:", req.body);
   const topic_name = req.body?.topic_name;
   const photo = req.file;
 
@@ -33,10 +35,13 @@ export const getAllTopics = asyncHandler(async (_req: Request, res: Response) =>
 });
 
 export const getTopicsForBatch = asyncHandler(async (
-  req: Request,
+  req: ExtendedRequest,
   res: Response
 ) => {
-  const batch = (req as any).batch;
+  const batch = req.batch;
+  if (!batch) {
+    throw new ApiError(401, "Authentication required - batch information missing");
+  }
 
   const data = await getTopicsForBatchService({
     batchId: batch.id,
@@ -47,7 +52,6 @@ export const getTopicsForBatch = asyncHandler(async (
 });
 
 export const updateTopic = asyncHandler(async (req: Request, res: Response) => {
-  console.log("Update Topic req.body:", req.body);
   const topicSlug = req.params.topicSlug as string;
   const topic_name = req.body?.topic_name;
   const removePhoto = req.body?.removePhoto;
@@ -82,10 +86,10 @@ export const deleteTopic = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 // Student-specific controller - get topics with batch progress
-export const getTopicsWithBatchProgress = asyncHandler(async (req: Request, res: Response) => {
+export const getTopicsWithBatchProgress = asyncHandler(async (req: ExtendedRequest, res: Response) => {
   // Get student info from middleware (extractStudentInfo)
-  const student = (req as any).student;
-  const batchId = (req as any).batchId;
+  const student = req.student;
+  const batchId = req.batchId;
 
   const studentId = student?.id;
 
@@ -103,35 +107,26 @@ export const getTopicsWithBatchProgress = asyncHandler(async (req: Request, res:
 });
 
 // Student-specific controller - get topic overview with classes summary
-export const getTopicOverviewWithClassesSummary = asyncHandler(async (req: Request, res: Response) => {
-  const requestId = Math.random().toString(36).substr(2, 9);
-  console.log(`[${requestId}] CONTROLLER START: getTopicOverviewWithClassesSummary`);
-  
+export const getTopicOverviewWithClassesSummary = asyncHandler(async (req: ExtendedRequest, res: Response) => {
   // Get student info from middleware (extractStudentInfo)
-  const student = (req as any).student;
-  const batchId = (req as any).batchId;
-  const { topicSlug } = req.params;
-
+  const student = req.student;
   const studentId = student?.id;
+  const batchId = req.batchId;
+  const topicSlug = req.params.topicSlug;
 
   // Ensure topicSlug is a string (not string array)
   const slug = Array.isArray(topicSlug) ? topicSlug[0] : topicSlug;
-
-  console.log(`[${requestId}] CONTROLLER: studentId=${studentId}, batchId=${batchId}, topicSlug=${slug}`);
 
   if (!studentId || !batchId || !slug) {
     throw new ApiError(400, "Student authentication and topic slug required", [], "REQUIRED_FIELD");
   }
 
-  console.log(`[${requestId}] CONTROLLER: Calling service`);
   const topicOverview = await getTopicOverviewWithClassesSummaryService({
     studentId,
     batchId,
     topicSlug: slug,
     query: req.query,
   });
-
-  console.log(`[${requestId}] CONTROLLER: Sending response`);
   return res.json(topicOverview);
 });
 

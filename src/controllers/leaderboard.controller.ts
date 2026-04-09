@@ -1,225 +1,192 @@
+/**
+ * Leaderboard Controller - Student ranking and competition endpoints
+ * Handles leaderboard queries for students and admins with filtering and pagination
+ * Provides competitive ranking data for motivation and progress tracking
+ */
+
 import { Request, Response } from "express";
-import { getAvailableYears } from "../services/leaderboard.service";
+import { getAvailableYears } from "../services/leaderboard/leaderboard-data.service";
 import { getAdminLeaderboard as getAdminLeaderboardService } from "../services/leaderboard/adminLeaderboard.service";
 import { getStudentLeaderboard as getStudentLeaderboardService } from "../services/leaderboard/studentLeaderboard.service";
 import prisma from "../config/prisma";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
+import { ExtendedRequest } from "../types";
 
 // Get available years for leaderboard filters
 export const getAvailableYearsController = asyncHandler(async (req: Request, res: Response) => {
-    try {
-        const years = await getAvailableYears();
-        return res.status(200).json({
-            success: true,
-            years: years
-        });
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        console.error("Error fetching available years:", error);
-        return res.status(500).json({
-            success: false,
-            message: error instanceof Error ? error.message : "Failed to fetch available years"
-        });
-    }
+    const years = await getAvailableYears();
+    return res.status(200).json({
+        success: true,
+        years: years
+    });
 });
 
 // Admin Leaderboard API with pagination and search
 export const getAdminLeaderboard = asyncHandler(async (req: Request, res: Response) => {
-    try {
-        // Step 1 — Read filters from request body
-        const body = req.body || {};
-        const { city, year } = body;
-        
-        // Step 2 — Read query params for pagination and search
-        const { page = 1, limit = 10, search } = req.query;
-        
-        // Step 3 — Prepare filters
-        const filters = {
-            city: city || 'all', 
-            year: year || new Date().getFullYear()
+    // Step 1 — Read filters from request body
+    const body = req.body || {};
+    const { city, year } = body;
+    
+    // Step 2 — Read query params for pagination and search
+    const { page = 1, limit = 10, search } = req.query;
+    
+    // Step 3 — Prepare filters
+    const filters = {
+        city: city || 'all', 
+        year: year || new Date().getFullYear()
+    };
+    
+    // Step 4 - Prepare pagination
+    const pagination = {
+        page: Number(page),
+        limit: Number(limit)
+    };
+    
+    // Step 5 — Use optimized service
+    const result = await getAdminLeaderboardService(filters, pagination, search as string);
+    
+    // Step 6 — Format leaderboard with all-time rankings
+    const formattedLeaderboard = result.leaderboard.map(entry => {
+        return {
+            student_id: entry.student_id,
+            name: entry.name,
+            username: entry.username,
+            batch_year: entry.batch_year,
+            city_name: entry.city_name,
+            profile_image_url: entry.profile_image_url || null,
+            max_streak: entry.max_streak || 0,
+            total_solved: Number(entry.total_solved || 0),
+            score: Number(entry.score || 0),
+            global_rank: entry.alltime_global_rank,
+            city_rank: entry.alltime_city_rank
         };
-        
-        // Step 4 - Prepare pagination
-        const pagination = {
-            page: Number(page),
-            limit: Number(limit)
-        };
-        
-        // Step 5 — Use optimized service
-        const result = await getAdminLeaderboardService(filters, pagination, search as string);
-        
-        // Step 6 — Format leaderboard with all-time rankings
-        const formattedLeaderboard = result.leaderboard.map(entry => {
-            return {
-                student_id: entry.student_id,
-                name: entry.name,
-                username: entry.username,
-                batch_year: entry.batch_year,
-                city_name: entry.city_name,
-                profile_image_url: entry.profile_image_url || null,
-                max_streak: entry.max_streak || 0,
-                total_solved: Number(entry.total_solved || 0),
-                score: Number(entry.score || 0),
-                global_rank: entry.alltime_global_rank,
-                city_rank: entry.alltime_city_rank
-            };
-        });
-        
-        return res.status(200).json({
-            success: true,
-            data: {
-                leaderboard: formattedLeaderboard,
-                total: result.pagination.total,
-                page: result.pagination.page,
-                limit: result.pagination.limit,
-                available_cities: result.available_cities,
-                last_calculated: result.last_calculated
-            }
-        });
-
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        console.error("Admin leaderboard error:", error);
-        return res.status(500).json({
-            success: false,
-            message: error instanceof Error ? error.message : "An error occurred"
-        });
-    }
+    });
+    
+    return res.status(200).json({
+        success: true,
+        data: {
+            leaderboard: formattedLeaderboard,
+            total: result.pagination.total,
+            page: result.pagination.page,
+            limit: result.pagination.limit,
+            available_cities: result.available_cities,
+            last_calculated: result.last_calculated
+        }
+    });
 });
 
 // Student Leaderboard API with top 10 and personal rank
-export const getStudentLeaderboard = asyncHandler(async (req: Request, res: Response) => {
-    try {
-        // Step 1 — Get student data from auth middleware (JWT)
-        const studentId = (req as any).studentId;
-        const cityId = (req as any).cityId;
-        const batchId = (req as any).batchId;
-        const batchName = (req as any).batchName;
-        
-        // Extract batch year from batchName (e.g., "2024-2025" → 2024)
-        const batchYear = batchName ? parseInt(batchName.split("-")[0]) : new Date().getFullYear();
-        
-        if (!studentId || !cityId || !batchId) {
-            return res.status(400).json({
-                success: false,
-                message: "Student data not found in JWT."
-            });
-        }
-        
-        // Step 2 — Get filters from request body
-        const body = req.body || {};
-        const { city, year, username } = body;
-        
-        // Step 3 — Prepare JWT data and filters
-        const jwtData = {
-            studentId,
-            cityId,
-            batchId,
-            batchYear
-        };
-        
-        const filters = {
-            city: city || 'all',
-            year: year || batchYear
-        };
-        
-        // Step 4 — Fetch using optimized service (no extra Prisma queries)
-        const result = await getStudentLeaderboardService(jwtData, filters, username);
-
-        // Step 6 — Format top10 leaderboard
-        const formattedTop10 = result.top10.map((entry: any) => {
-            return {
-                student_id: entry.student_id,
-                name: entry.name,
-                username: entry.username,
-                profile_image_url: entry.profile_image_url,
-                batch_year: entry.batch_year,
-                city_name: entry.city_name,
-                max_streak: entry.max_streak || 0,
-                total_solved: Number(entry.total_solved || 0),
-                score: Number(entry.score || 0),
-                global_rank: entry.alltime_global_rank,
-                city_rank: entry.alltime_city_rank
-            };
-        });
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                top10: formattedTop10,
-                yourRank: result.yourRank,
-                message: result.message,
-                filters: result.filters,
-                available_cities: result.available_cities,
-                last_calculated: result.last_calculated
-            }
-        });
-
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        console.error("Student leaderboard error:", error);
-        return res.status(500).json({
+export const getStudentLeaderboard = asyncHandler(async (req: ExtendedRequest, res: Response) => {
+    // Step 1 — Get student data from auth middleware (JWT)
+    const studentId = req.studentId;
+    const cityId = req.cityId;
+    const batchId = req.batchId;
+    const batchName = req.batchName;
+    
+    // Extract batch year from batchName (e.g., "2024-2025" → 2024)
+    const batchYear = batchName ? parseInt(batchName.split("-")[0]) : new Date().getFullYear();
+    
+    if (!studentId || !cityId || !batchId) {
+        return res.status(400).json({
             success: false,
-            message: error instanceof Error ? error.message : "An error occurred"
+            message: "Student data not found in JWT."
         });
     }
+    
+    // Step 2 — Get filters from request body
+    const body = req.body || {};
+    const { city, year, username } = body;
+    
+    // Step 3 — Prepare JWT data and filters
+    const jwtData = {
+        studentId,
+        cityId,
+        batchId,
+        batchYear
+    };
+    
+    const filters = {
+        city: city || 'all',
+        year: year || batchYear
+    };
+    
+    // Step 4 — Fetch using optimized service (no extra Prisma queries)
+    const result = await getStudentLeaderboardService(jwtData, filters, username);
+
+    // Step 6 — Format top10 leaderboard
+    const formattedTop10 = result.top10.map((entry: any) => {
+        return {
+            student_id: entry.student_id,
+            name: entry.name,
+            username: entry.username,
+            profile_image_url: entry.profile_image_url,
+            batch_year: entry.batch_year,
+            city_name: entry.city_name,
+            max_streak: entry.max_streak || 0,
+            total_solved: Number(entry.total_solved || 0),
+            score: Number(entry.score || 0),
+            global_rank: entry.alltime_global_rank,
+            city_rank: entry.alltime_city_rank
+        };
+    });
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            top10: formattedTop10,
+            yourRank: result.yourRank,
+            message: result.message,
+            filters: result.filters,
+            available_cities: result.available_cities,
+            last_calculated: result.last_calculated
+        }
+    });
 });
 
 // Legacy endpoints for backward compatibility
 export const getLeaderboardPost = asyncHandler(async (req: Request, res: Response) => {
-    try {
-        const body = req.body || {};
-        const { city, year, type } = body;
-        
-        const query = {
-            type: type || 'all',
-            city: city || 'all',
-            year: year || new Date().getFullYear()
-        };
+    const body = req.body || {};
+    const { city, year, type } = body;
+    
+    const query = {
+        type: type || 'all',
+        city: city || 'all',
+        year: year || new Date().getFullYear()
+    };
 
-        // For backward compatibility, get first page without pagination
-        const pagination = { page: 1, limit: 100 };
-        const result = await getAdminLeaderboardService(query, pagination, undefined);
+    // For backward compatibility, get first page without pagination
+    const pagination = { page: 1, limit: 100 };
+    const result = await getAdminLeaderboardService(query, pagination, undefined);
 
-        return res.status(200).json({
-            success: true,
-            data: result.leaderboard
-        });
-
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: error instanceof Error ? error.message : "An error occurred"
-        });
-    }
+    return res.status(200).json({
+        success: true,
+        data: result.leaderboard
+    });
 });
 
-export const getLeaderboardByType = asyncHandler(async (req: Request, res: Response) => {
-    try {
-        const studentId = (req as any).studentId;
-        if (!studentId) {
-            return res.status(400).json({
-                success: false,
-                message: "Student ID not found in request."
-            });
-        }
-        
-        const body = req.body || {};
-        const { type, city, year } = body;
-        
-        const query = {
-            type: type || 'all',
-            city: city || 'all',
-            year: year || new Date().getFullYear()
-        };
+export const getLeaderboardByType = asyncHandler(async (req: ExtendedRequest, res: Response) => {
+    const studentId = req.studentId;
+    if (!studentId) {
+        return res.status(400).json({
+            success: false,
+            message: "Student ID not found in request."
+        });
+    }
+    
+    const body = req.body || {};
+    const { type, city, year } = body;
+    
+    const query = {
+        type: type || 'all',
+        city: city || 'all',
+        year: year || new Date().getFullYear()
+    };
 
-        // Get leaderboard data
-        const pagination = { page: 1, limit: 100 };
-        const leaderboardResult = await getAdminLeaderboardService(query, pagination, undefined);
-        const leaderboard = leaderboardResult.leaderboard;
+    // Get leaderboard data
+    const pagination = { page: 1, limit: 100 };
+    const leaderboardResult = await getAdminLeaderboardService(query, pagination, undefined);
+    const leaderboard = leaderboardResult.leaderboard;
 
         // Find the student's rank in the leaderboard
         const studentEntry = leaderboard.find((entry: any) => entry.student_id === studentId);
@@ -318,13 +285,4 @@ export const getLeaderboardByType = asyncHandler(async (req: Request, res: Respo
             data: leaderboard,
             yourRank: studentRank
         });
-
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: error instanceof Error ? error.message : "An error occurred"
-        });
-    }
 });

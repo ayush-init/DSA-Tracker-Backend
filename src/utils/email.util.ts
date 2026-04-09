@@ -1,7 +1,22 @@
-import nodemailer from 'nodemailer';
+/**
+ * Email Utility - Email sending functionality
+ * Provides email sending capabilities with nodemailer
+ * Handles OTP email delivery with professional HTML templates
+ */
 
-// Create email transporter
+import nodemailer from 'nodemailer';
+import { ApiError } from './ApiError';
+
+/**
+ * Create and configure email transporter
+ * @returns Configured nodemailer transporter
+ * @throws ApiError if email configuration is missing
+ */
 const createTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new ApiError(500, "Email configuration is missing", [], "EMAIL_CONFIG_MISSING");
+  }
+  
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -11,7 +26,13 @@ const createTransporter = () => {
   });
 };
 
-// Send OTP email with new design
+/**
+ * Send OTP email with professional HTML template
+ * @param email - Recipient email address
+ * @param otp - One-time password to send
+ * @param userName - Optional user name for personalization
+ * @throws ApiError if email sending fails
+ */
 export const sendOTPEmail = async (email: string, otp: string, userName?: string): Promise<void> => {
   try {
     const transporter = createTransporter();
@@ -134,9 +155,9 @@ export const sendOTPEmail = async (email: string, otp: string, userName?: string
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`OTP email sent to ${email}`);
-  } catch (error) {
-    console.error('Error sending OTP email:', error);
-    throw error;
+    // Email sent successfully
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to send OTP email";
+    throw new ApiError(500, `Email sending failed: ${errorMessage}`, [], "EMAIL_SEND_ERROR");
   }
 };

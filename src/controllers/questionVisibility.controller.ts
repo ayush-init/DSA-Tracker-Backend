@@ -1,108 +1,65 @@
 import { Request, Response } from "express";
-import { assignQuestionsToClassService, getAssignedQuestionsOfClassService, removeQuestionFromClassService, getAllQuestionsWithFiltersService, updateQuestionVisibilityTypeService } from "../services/questionVisibility.service";
+import { assignQuestionsToClassService, removeQuestionFromClassService, updateQuestionVisibilityTypeService } from "../services/questions/visibility.service";
+import { getAssignedQuestionsOfClassService } from "../services/questions/visibility-query.service";
+import { getAllQuestionsWithFiltersService } from "../services/questions/visibility-student.service";
+import { validateSlugParams, validateRequiredSlugParams, validateQuestionAssignments, parsePaginationParams } from "../services/questions/visibility-validation.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
+import { ExtendedRequest } from "../types";
 
 export const assignQuestionsToClass = asyncHandler(async (
-          req: Request,
+          req: ExtendedRequest,
           res: Response
         ) => {
-          try {
-            const batch = (req as any).batch;
+            const batch = req.batch;
+            if (!batch) {
+              throw new ApiError(401, "Authentication required - batch information missing");
+            }
+            
             const topicSlugParam = req.params.topicSlug;
             const classSlug = req.params.classSlug;
-
-            if (typeof topicSlugParam !== "string") {
-              throw new ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
-            }
-
-            if (typeof classSlug !== "string") {
-              throw new ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
-            }
-
             const { questions } = req.body;
 
-            // Validation 1: Check if questions is provided
-            if (!questions) {
-              throw new ApiError(400, "questions field is required", [], "REQUIRED_FIELD");
-            }
-
-            // Validation 2: Check if questions is an array
-            if (!Array.isArray(questions)) {
-              throw new ApiError(400, "questions must be an array", [], "INVALID_INPUT");
-            }
-
-            // Validation 3: Check if array is not empty
-            if (questions.length === 0) {
-              throw new ApiError(400, "questions array cannot be empty", [], "INVALID_INPUT");
-            }
-
-            // Validation 4: Check if all elements have required fields
-            if (!questions.every(q => typeof q.question_id === 'number' && q.question_id > 0 && 
-                                   (q.type === 'HOMEWORK' || q.type === 'CLASSWORK'))) {
-              throw new ApiError(400, "All questions must have question_id (positive number) and type (HOMEWORK or CLASSWORK)", [], "INVALID_INPUT");
-            }
-
-            // Validation 5: Check for duplicate question IDs in request
-            const questionIds = questions.map(q => q.question_id);
-            const duplicateIds = questionIds.filter((id, index) => questionIds.indexOf(id) !== index);
-            if (duplicateIds.length > 0) {
-              throw new ApiError(400, `Duplicate question IDs found in request: ${duplicateIds.join(', ')}`, [], "INVALID_INPUT");
-            }
+            // Validate slugs and question assignments
+            const { topicSlug, classSlug: validatedClassSlug } = validateRequiredSlugParams(topicSlugParam, classSlug);
+            const validatedQuestions = validateQuestionAssignments(questions);
 
             const result = await assignQuestionsToClassService({
               batchId: batch.id,
-              topicSlug: topicSlugParam,
-              classSlug,
-              questions: questions,
+              topicSlug: topicSlug,
+              classSlug: validatedClassSlug,
+              questions: validatedQuestions,
             });
 
             return res.json({
               message: "Questions assigned successfully",
               ...result,
             });
-
-          } catch (error: any) {
-    if (error instanceof ApiError) throw error;
-            throw new ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
-          }
         });
 
 export const getAssignedQuestionsOfClass = asyncHandler(async (
-          req: Request,
+          req: ExtendedRequest,
           res: Response
         ) => {
-          try {
-            const batch = (req as any).batch;
+            const batch = req.batch;
+            if (!batch) {
+              throw new ApiError(401, "Authentication required - batch information missing");
+            }
+            
             const topicSlugParam = req.params.topicSlug;
-            const classSlug = req.params.classSlug;
+            const classSlugParam = req.params.classSlug;
 
-            if (typeof topicSlugParam !== "string") {
-              throw new ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
-            }
-
-            if (typeof classSlug !== "string") {
-              throw new ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
-            }
-
-            // Extract pagination and search parameters
-            const {
-              page = '1',
-              limit = '25',
-              search = ''
-            } = req.query;
-
-            const pageNum = parseInt(page as string);
-            const limitNum = parseInt(limit as string);
-            const searchQuery = search as string;
+            // Validate slugs and parse pagination
+            const { topicSlug, classSlug } = validateRequiredSlugParams(topicSlugParam, classSlugParam);
+            const pagination = parsePaginationParams(req.query);
 
             const assigned = await getAssignedQuestionsOfClassService({
               batchId: batch.id,
-              topicSlug: topicSlugParam,
-              classSlug,
-              page: pageNum,
-              limit: limitNum,
-              search: searchQuery,
+              topicSlug: topicSlug,
+              classSlug: classSlug,
+              page: pagination.page,
+              limit: pagination.limit,
+              search: pagination.search || '',
             });
 
             return res.json({
@@ -110,65 +67,47 @@ export const getAssignedQuestionsOfClass = asyncHandler(async (
               data: assigned.data,
               pagination: assigned.pagination,
             });
-
-          } catch (error: any) {
-    if (error instanceof ApiError) throw error;
-            throw new ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
-          }
         });
 
 
 export const removeQuestionFromClass = asyncHandler(async (
-          req: Request,
+          req: ExtendedRequest,
           res: Response
         ) => {
-          try {
-            const batch = (req as any).batch;
+            const batch = req.batch;
+            if (!batch) {
+              throw new ApiError(401, "Authentication required - batch information missing");
+            }
+            
             const topicSlugParam = req.params.topicSlug;
-            const classSlug = req.params.classSlug;
+            const classSlugParam = req.params.classSlug;
             const questionIdParam = req.params.questionId;
             
-            if (typeof questionIdParam !== "string") {
-              throw new ApiError(400, "Invalid question ID", [], "INVALID_INPUT");
-            }
+            // Validate slugs and question ID
+            const { topicSlug, classSlug } = validateRequiredSlugParams(topicSlugParam, classSlugParam);
+            const questionId = typeof questionIdParam === "string" ? parseInt(questionIdParam) : undefined;
             
-            const questionId = parseInt(questionIdParam);
-
-            if (typeof topicSlugParam !== "string") {
-              throw new ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
-            }
-
-            if (typeof classSlug !== "string") {
-              throw new ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
-            }
-
-            if (isNaN(questionId)) {
+            if (!questionId || isNaN(questionId) || questionId <= 0) {
               throw new ApiError(400, "Invalid question ID", [], "INVALID_INPUT");
             }
 
             await removeQuestionFromClassService({
               batchId: batch.id,
-              topicSlug: topicSlugParam,
-              classSlug,
-              questionId,
+              topicSlug: topicSlug,
+              classSlug: classSlug,
+              questionId: questionId,
             });
 
             return res.json({
               message: "Question removed successfully",
             });
-
-          } catch (error: any) {
-    if (error instanceof ApiError) throw error;
-            throw new ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
-          }
         });
 
 // Student-specific controller - get all questions with filters for student's batch
-export const getAllQuestionsWithFilters = asyncHandler(async (req: Request, res: Response) => {
-          try {
+export const getAllQuestionsWithFilters = asyncHandler(async (req: ExtendedRequest, res: Response) => {
             // Get student info from middleware (extractStudentInfo)
-            const student = (req as any).student;
-            const batchId = (req as any).batchId;
+            const student = req.student;
+            const batchId = req.batchId;
             
             const studentId = student?.id;
 
@@ -206,36 +145,29 @@ export const getAllQuestionsWithFilters = asyncHandler(async (req: Request, res:
             });
 
             return res.json(questions);
-
-          } catch (error: any) {
-    if (error instanceof ApiError) throw error;
-            throw new ApiError(500, error.message || "Failed to fetch questions",);
-          }
         });
 
 // Update question visibility type (homework/classwork)
 export const updateQuestionVisibilityType = asyncHandler(async (
-          req: Request,
+          req: ExtendedRequest,
           res: Response
         ) => {
-          try {
-            const batch = (req as any).batch;
+            const batch = req.batch;
+            if (!batch) {
+              throw new ApiError(401, "Authentication required - batch information missing");
+            }
+            
             const topicSlugParam = req.params.topicSlug;
-            const classSlug = req.params.classSlug;
+            const classSlugParam = req.params.classSlug;
             const visibilityIdParam = req.params.visibilityId;
 
-            if (typeof topicSlugParam !== "string") {
-              throw new ApiError(400, "Invalid topic slug", [], "INVALID_INPUT");
-            }
-
-            if (typeof classSlug !== "string") {
-              throw new ApiError(400, "Invalid class slug", [], "INVALID_INPUT");
-            }
-
+            // Validate slugs and visibility ID
+            const { topicSlug, classSlug } = validateRequiredSlugParams(topicSlugParam, classSlugParam);
+            
             if (typeof visibilityIdParam !== "string") {
               throw new ApiError(400, "Invalid visibility ID", [], "INVALID_INPUT");
             }
-
+            
             const visibilityId = parseInt(visibilityIdParam);
             if (isNaN(visibilityId)) {
               throw new ApiError(400, "Invalid visibility ID", [], "INVALID_INPUT");
@@ -249,8 +181,8 @@ export const updateQuestionVisibilityType = asyncHandler(async (
 
             const updated = await updateQuestionVisibilityTypeService({
               batchId: batch.id,
-              topicSlug: topicSlugParam,
-              classSlug,
+              topicSlug: topicSlugParam as string,
+              classSlug: classSlugParam as string,
               visibilityId,
               type
             });
@@ -259,9 +191,4 @@ export const updateQuestionVisibilityType = asyncHandler(async (
               message: "Question visibility type updated successfully",
               data: updated
             });
-
-          } catch (error: any) {
-    if (error instanceof ApiError) throw error;
-            throw new ApiError(500, error.message, [], "INTERNAL_SERVER_ERROR");
-          }
         });

@@ -1,15 +1,5 @@
 import prisma from "../config/prisma";
-
-interface UsernameGenerationOptions {
-  name: string;
-  enrollmentId?: string;
-}
-
-interface GeneratedUsername {
-  baseUsername: string;
-  finalUsername: string;
-  isDuplicate: boolean;
-}
+import { UsernameGenerationOptions, GeneratedUsername } from "../types/utility.types";
 
 /**
  * Generates a username from student's name and enrollment ID
@@ -184,6 +174,4 @@ export {
   validateUsernameFormat,
   generateUsernameSuggestions,
   fixExistingNullUsernames,
-  type UsernameGenerationOptions,
-  type GeneratedUsername,
 };

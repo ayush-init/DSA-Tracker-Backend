@@ -3,18 +3,16 @@ import { verifyToken } from "../middlewares/auth.middleware";
 import { isStudent } from "../middlewares/role.middleware";
 import { extractStudentInfo } from "../middlewares/student.middleware";
 import { optionalAuth } from "../middlewares/optionalAuth.middleware";
+import { heavyLimiter, apiLimiter } from "../middlewares/rateLimiter";
 import { getTopicsWithBatchProgress, getTopicOverviewWithClassesSummary } from "../controllers/topic.controller";
 import { getClassDetailsWithFullQuestions } from "../controllers/class.controller";
 import { getAllQuestionsWithFilters } from "../controllers/questionVisibility.controller";
 import { getStudentLeaderboard } from "../controllers/leaderboard.controller";
-import { getPublicStudentProfile } from "../controllers/studentProfile.controller";
-import { getCurrentStudent } from "../controllers/student.controller";
-import { updateStudentProfile } from "../controllers/updateStudentProfile.controller";
-import { uploadSingle } from '../middlewares/uploadphoto.middleware';
+import { getCurrentStudent, getPublicStudentProfile, updateStudentProfile, updateUsername } from "../controllers/student.controller";
+import { uploadSingle } from '../middlewares/upload.middleware';
 import { uploadProfileImage, deleteProfileImage,} from '../controllers/profileImage.controller';
 import { getAllBatches } from "../controllers/batch.controller";
 import { getAllCities } from "../controllers/city.controller";
-import { updateUsername } from "../controllers/username.controller";
 import { getRecentQuestions } from "../controllers/recentQuestions.controller";
 import { getBookmarks, addBookmark, updateBookmark, deleteBookmark } from "../controllers/bookmark.controller";
 
@@ -46,11 +44,11 @@ router.get("/topics/:topicSlug", getTopicOverviewWithClassesSummary); // Topic o
 router.get("/topics/:topicSlug/classes/:classSlug", getClassDetailsWithFullQuestions); // Class details with full questions array & progress
 
 // ===== Global  QUESTIONS ROUTES =====
-router.get("/addedQuestions", getAllQuestionsWithFilters); // All questions with filters and solved status
+router.get("/addedQuestions", heavyLimiter, getAllQuestionsWithFilters); // All questions with filters and solved status
 router.get("/recent-questions", getRecentQuestions); // Recently added questions (last 7 days by default)
 
 // ===== LEADERBOARD ROUTES =====
-router.post("/leaderboard", getStudentLeaderboard); // Single student leaderboard with top 10 and personal rank
+router.post("/leaderboard", heavyLimiter, getStudentLeaderboard); // Single student leaderboard with top 10 and personal rank
 
 // ===== PROFILE IMAGE ROUTES =====
 router.post("/profile-image", uploadSingle, uploadProfileImage);  // Upload/Update profile image

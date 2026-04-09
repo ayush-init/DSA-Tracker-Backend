@@ -5,18 +5,7 @@
  * for consistent security across all user types (Student, Admin, SuperAdmin)
  */
 
-export interface PasswordValidationResult {
-  isValid: boolean;
-  message: string;
-  strength: 'weak' | 'medium' | 'strong';
-  missingRequirements: string[];
-}
-
-export interface PasswordRule {
-  regex: RegExp;
-  message: string;
-  description: string;
-}
+import { PasswordValidationResult, PasswordRule } from "../types/utility.types";
 
 /**
  * Password validation rules with regex patterns
@@ -120,6 +109,15 @@ export function validatePassword(password: string): PasswordValidationResult {
 }
 
 /**
+ * Custom validation error interface
+ */
+interface ValidationError extends Error {
+  statusCode?: number;
+  code?: string;
+  type?: string;
+}
+
+/**
  * Middleware-friendly validation function that throws ApiError
  * Use this in controllers for consistent error handling
  */
@@ -127,7 +125,7 @@ export function validatePasswordForAuth(password: string): void {
   const validation = validatePassword(password);
   
   if (!validation.isValid) {
-    const error = new Error(validation.message) as any;
+    const error = new Error(validation.message) as ValidationError;
     error.statusCode = 400;
     error.code = 'INVALID_PASSWORD';
     error.type = 'VALIDATION_ERROR';
@@ -135,29 +133,3 @@ export function validatePasswordForAuth(password: string): void {
   }
 }
 
-/**
- * Check password strength independently (for UI indicators)
- * @param password - Password string to check
- * @returns 'weak' | 'medium' | 'strong'
- */
-export function getPasswordStrength(password: string): 'weak' | 'medium' | 'strong' {
-  const validation = validatePassword(password);
-  return validation.strength;
-}
-
-/**
- * Get password requirements array for UI display
- * @returns Array of requirement descriptions
- */
-export function getPasswordRequirements(): string[] {
-  return PASSWORD_RULES.map(rule => rule.description);
-}
-
-/**
- * Check if password meets minimum requirements (for basic validation)
- * @param password - Password string to check
- * @returns boolean indicating if minimum requirements are met
- */
-export function meetsMinimumRequirements(password: string): boolean {
-  return validatePassword(password).isValid;
-}

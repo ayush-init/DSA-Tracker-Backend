@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import { getRecentQuestionsService } from "../services/recentQuestions.service";
+import { getRecentQuestionsService } from "../services/questions/recentQuestions.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
+import { ExtendedRequest } from "../types";
 
-export const getRecentQuestions = asyncHandler(async (req: Request, res: Response) => {
-          try {
+export const getRecentQuestions = asyncHandler(async (req: ExtendedRequest, res: Response) => {
             // Get batch info from middleware (extractStudentInfo)
-            const batchId = (req as any).batchId;
+            const batchId = req.batchId;
             const { date, page, limit } = req.query;
 
             if (!batchId) {
@@ -43,9 +43,4 @@ export const getRecentQuestions = asyncHandler(async (req: Request, res: Respons
             });
 
             return res.json(result);
-
-          } catch (error: any) {
-            if (error instanceof ApiError) throw error;
-            throw new ApiError(500, error.message || "Failed to fetch recent questions", [], "INTERNAL_SERVER_ERROR");
-          }
         });

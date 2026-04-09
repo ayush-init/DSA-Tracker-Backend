@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { StudentRequest } from '../middlewares/student.middleware';
-import { ProfileImageService } from '../services/profileImage.service';
+import { ProfileImageService } from '../services/students/profileImage.service';
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 

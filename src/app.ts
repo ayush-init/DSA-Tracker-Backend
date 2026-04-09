@@ -12,6 +12,7 @@ import superadminRoutes from './routes/superadmin.routes';
 import publicRoutes from './routes/public.routes';
 import userRoutes from './routes/user.routes';
 import { startSyncJob } from './jobs/sync.job';
+import { apiLimiter } from './middlewares/rateLimiter';
 
 dotenv.config();
 
@@ -28,6 +29,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Apply global API rate limiter to all API routes
+// Note: Specific routes with their own limiters will override this
+app.use('/api', apiLimiter);
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use("/api/students", studentRoutes);
@@ -36,8 +41,7 @@ app.use('/api', publicRoutes);                     // Public routes (cities, bat
 app.use('/api/admin', adminRoutes);              // Teacher & Intern & admin
 app.use('/api/superadmin',superadminRoutes);    // Superadmin ONLY
 
-// Serve static files for CSV UI
-app.use('/csv-ui', express.static(path.join(__dirname, 'csv_ui')));
+// CSV UI directory removed - was referencing non-existent directory
 
 // Health check
 app.get('/health', (req, res) => {

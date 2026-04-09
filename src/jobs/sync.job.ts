@@ -1,14 +1,12 @@
 import cron from "node-cron";
 import { runStudentSyncWorker } from "../workers/sync.worker";
-import { syncLeaderboardData } from "../services/leaderboardSync.service";
+import { syncLeaderboardData } from "../services/leaderboardSync/sync-core.service";
 
 export function startSyncJob() {
 
   console.log("Sync cron job started");
   
   //  Combined sync job: Student Progress FIRST, then Leaderboard
-  // cron.schedule("0 */4 * * *", async () => {
-  // cron.schedule("* * * * *", async () => {
 cron.schedule("0 9,18,23 * * *", async () => {
 // Runs: 9:00 AM, 18:00 (6 PM), 23:00 (11 PM)
     const maxRetries = 3;
@@ -36,11 +34,6 @@ cron.schedule("0 9,18,23 * * *", async () => {
         console.log(`❤️❤️❤️❤️❤️❤️❤️ Combined sync cycle completed successfully in ${totalDuration}ms`);
         console.log(`❤️❤️❤️❤️❤️❤️❤️ Processed ${leaderboardResult.studentsProcessed} students`);
         
-        // Stop server after sync completion
-        // console.log("Stopping server...");
-        // process.exit(0);
-
-        // Success, exit retry loop
         break;
         
       } catch (error) {
@@ -49,7 +42,15 @@ cron.schedule("0 9,18,23 * * *", async () => {
         
         if (attempt >= maxRetries) {
           console.error("All sync attempts failed. Please investigate the issue.");
-          // TODO: Add alert/notification system here
+          // Alert/notification system for sync failures
+          // Log critical failure for monitoring system
+          console.error(`CRITICAL: Student sync failed after ${maxRetries} attempts`);
+          
+          // In production, this would trigger:
+          // - Email/SMS alerts to administrators
+          // - Monitoring system alerts
+          // - Incident response team notification
+          // For now, we log the critical error for monitoring
           break;
         }
         

@@ -1,5 +1,24 @@
+/**
+ * Error Mapper Utility - Database error mapping and error message standardization
+ * Maps database errors to appropriate HTTP status codes and user-friendly messages
+ * Provides consistent error handling across the application
+ */
+
 import { ApiError } from './ApiError';
 
+/**
+ * Database error interface for type safety
+ */
+interface DatabaseError {
+  code: string;
+  meta?: {
+    target?: string[];
+  };
+}
+
+/**
+ * HTTP status codes constants
+ */
 export const HTTP_STATUS = {
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
@@ -57,12 +76,18 @@ export const ERROR_MESSAGES = {
   EMAIL_SEND_ERROR: 'Failed to send email'
 } as const;
 
-export const mapDatabaseError = (error: any, resource: string): ApiError => {
+/**
+ * Map database errors to appropriate API errors
+ * @param error - Database error object
+ * @param resource - Resource name for error messages
+ * @returns Mapped ApiError with appropriate status code and message
+ */
+export const mapDatabaseError = (error: DatabaseError, resource: string): ApiError => {
   if (error.code === "P2025") {
     return new ApiError(HTTP_STATUS.NOT_FOUND, `${resource} not found`, [], "NOT_FOUND");
   }
   if (error.code === "P2002") {
-    const field = error.meta?.target as string[] | undefined;
+    const field = error.meta?.target;
     if (field?.includes("email")) {
       return new ApiError(HTTP_STATUS.CONFLICT, "Email already exists", [], "EMAIL_EXISTS");
     }
@@ -80,6 +105,13 @@ export const mapDatabaseError = (error: any, resource: string): ApiError => {
   return new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Database operation failed", [], "DATABASE_ERROR");
 };
 
+/**
+ * Get user-friendly error message based on status code and error code
+ * @param statusCode - HTTP status code
+ * @param message - Original error message
+ * @param code - Optional error code for specific mapping
+ * @returns User-friendly error message
+ */
 export const getUserFriendlyMessage = (statusCode: number, message: string, code?: string): string => {
   // First check if we have a specific mapping for the error code
   if (code) {

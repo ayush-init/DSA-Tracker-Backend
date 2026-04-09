@@ -1,10 +1,39 @@
+/**
+ * Optional Authentication Middleware - Optional JWT verification
+ * Provides optional authentication that doesn't block requests if no token is provided
+ * Useful for routes that work with or without authentication
+ */
+
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import prisma from "../config/prisma";
+import { verifyAccessToken } from "../utils/jwt.util";
+import { AccessTokenPayload } from "../types/auth.types";
 import { ApiError } from "../utils/ApiError";
 
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+// Extend Express Request interface to include user information
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AccessTokenPayload;
+    }
+  }
+}
+
+/**
+ * Optional authentication middleware - continues regardless of auth status
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ */
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // No token provided, continue without authentication
+    return next();
+  }
+
+  // Extract token from Bearer header
+  const token = authHeader.split(" ")[1];
   
   if (!token) {
     // No token provided, continue without authentication
@@ -12,28 +41,15 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
   }
 
   try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    // Verify token using our JWT utility
+    const decoded = verifyAccessToken(token);
     
-    // Get user from database
-    const user = await prisma.student.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true
-      }
-    });
-
-    if (!user) {
-      // Invalid token, continue without authentication
-      return next();
-    }
-
     // Attach user to request with same structure as other middleware
-    (req as any).user = user;
+    req.user = decoded;
     next();
-  } catch (error) {
+  } catch (error: unknown) {
     // Invalid token, continue without authentication
+    // This is optional auth, so we don't throw errors
     next();
   }
 };

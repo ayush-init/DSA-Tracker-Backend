@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createCityService, deleteCityService, getAllCitiesService, updateCityService } from "../services/city.service";
+import { createCityService, deleteCityService, getAllCitiesService, updateCityService } from "../services/cities/city.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 
