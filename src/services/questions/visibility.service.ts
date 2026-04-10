@@ -1,6 +1,7 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
 import { QuestionAssignmentItem, AssignQuestionsInput, RemoveQuestionInput } from "../../types/question.types";
+import { CacheInvalidation } from "../../utils/cacheInvalidation";
 
 export const assignQuestionsToClassService = async ({
   batchId,
@@ -48,6 +49,9 @@ export const assignQuestionsToClassService = async ({
   // Update batch question counts after assignment
   await updateBatchQuestionCounts(batchId);
 
+  // Invalidate assigned questions cache for this specific batch only
+  await CacheInvalidation.invalidateAssignedQuestionsForBatch(batchId);
+
   return { assignedCount: questions.length };
 };
 
@@ -88,6 +92,9 @@ export const removeQuestionFromClassService = async ({
 
   // Update batch question counts after removal
   await updateBatchQuestionCounts(batchId);
+
+  // Invalidate assigned questions cache for this specific batch only
+  await CacheInvalidation.invalidateAssignedQuestionsForBatch(batchId);
 
   return true;
 };

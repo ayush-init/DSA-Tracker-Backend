@@ -1,5 +1,9 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { CacheInvalidation } from "../../utils/cacheInvalidation";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 
 // Student-specific service - get all questions with filters for student's batch
 interface GetAllQuestionsWithFiltersInput {
@@ -23,7 +27,27 @@ export const getAllQuestionsWithFiltersService = async ({
   filters
 }: GetAllQuestionsWithFiltersInput) => {
   
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:assigned_questions:${studentId}:${batchId}`, filters);
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] assigned_questions for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
   const apiStartTime = Date.now();
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] assigned_questions for student ${studentId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
   
   // Build base where clause for question visibility (questions assigned to this batch)
   const baseWhereClause: any = {
@@ -281,7 +305,7 @@ export const getAllQuestionsWithFiltersService = async ({
   const solvedCount = questions.filter(q => q.isSolved).length;
   const totalApiTime = Date.now() - apiStartTime;
 
-  return {
+  const result = {
     questions,
     pagination: {
       page: filters.page,
@@ -300,4 +324,17 @@ export const getAllQuestionsWithFiltersService = async ({
       solved: solvedCount
     }
   };
+
+  // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+  const serializedResult = JSON.stringify(result);
+  await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentAssignedQuestions);
+  
+  console.log('=== CACHE STORAGE ===');
+  console.log(`[CACHE STORE] assigned_questions for student ${studentId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`TTL: ${CACHE_TTL.studentAssignedQuestions} seconds (${CACHE_TTL.studentAssignedQuestions/60} minutes)`);
+  console.log(`Data Source: Database Query -> Cached in Redis`);
+  console.log('====================');
+
+  return result;
 };

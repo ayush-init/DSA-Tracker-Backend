@@ -3,6 +3,7 @@ import { fetchLeetcodeData } from "../external/leetcode.service";
 import { fetchGfgData } from "../external/gfg.service";
 import { ApiError } from "../../utils/ApiError";
 import { extractSlug } from "./sync-utils.service";
+import { CacheInvalidation } from "../../utils/cacheInvalidation";
 
 interface BatchQuestionData {
   question_ids: number[];
@@ -184,6 +185,9 @@ export async function syncOneStudent(
       data: newProgressEntries,
       skipDuplicates: true  // Safety net to prevent any duplicates
     });
+    
+    // Invalidate assigned questions cache when student progress changes
+    await CacheInvalidation.invalidateAssignedQuestions();
   } else {
   }
 
