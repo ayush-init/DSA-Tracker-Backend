@@ -94,4 +94,74 @@ export class CacheInvalidation {
   static async invalidateRecentQuestions() {
     await deleteByPattern('student:recent_questions:*');
   }
+  
+  // Batch-specific topics invalidation
+  static async invalidateTopicsForBatch(batchId: number) {
+    await deleteByPattern(`student:topics:*:*:${batchId}:*`);
+  }
+  
+  // Student-specific topics invalidation
+  static async invalidateTopicsForStudent(studentId: number) {
+    await deleteByPattern(`student:topics:${studentId}:*`);
+  }
+  
+  // Batch-specific topic overview invalidation
+  static async invalidateTopicOverviewsForBatch(batchId: number) {
+    await deleteByPattern(`student:topic_overview:*:*:${batchId}:*`);
+  }
+  
+  // Student-specific topic overview invalidation
+  static async invalidateTopicOverviewsForStudent(studentId: number) {
+    await deleteByPattern(`student:topic_overview:${studentId}:*`);
+  }
+  
+  // Student-specific assigned questions invalidation
+  static async invalidateAssignedQuestionsForStudent(studentId: number) {
+    await deleteByPattern(`student:assigned_questions:${studentId}:*`);
+  }
+  
+  // Student-specific profile invalidation
+  static async invalidateStudentProfile(studentId: number) {
+    const patterns = [
+      `student:profile:${studentId}`,
+      `student:profile:public:${studentId}`
+    ];
+    
+    await Promise.all(patterns.map(pattern => deleteByPattern(pattern)));
+  }
+  
+  // Batch-specific class progress invalidation
+  static async invalidateClassProgressForBatch(batchId: number) {
+    await deleteByPattern(`student:class_progress:*:*:${batchId}:*`);
+  }
+  
+  // Student-specific class progress invalidation
+  static async invalidateClassProgressForStudent(studentId: number) {
+    await deleteByPattern(`student:class_progress:${studentId}:*`);
+  }
+  
+  // Class-specific invalidation
+  static async invalidateClassProgressForClass(classId: number) {
+    await deleteByPattern(`student:class_progress:*:*:*:${classId}:*`);
+  }
+  
+  // Student-specific bookmarks invalidation
+  static async invalidateBookmarksForStudent(studentId: number) {
+    await deleteByPattern(`student:bookmarks:${studentId}:*`);
+  }
+  
+  // General bookmarks invalidation
+  static async invalidateBookmarks() {
+    await deleteByPattern('student:bookmarks:*');
+  }
+  
+  // All student profiles invalidation
+  static async invalidateAllStudentProfiles() {
+    const patterns = [
+      'student:profile:*',
+      'student:profile:public:*'
+    ];
+    
+    await Promise.all(patterns.map(pattern => deleteByPattern(pattern)));
+  }
 }

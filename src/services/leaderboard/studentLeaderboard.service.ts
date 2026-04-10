@@ -4,6 +4,9 @@ import {
   getCachedCityYearMapping,
   handleLeaderboardError,
 } from "./leaderboard.shared";
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 
 interface JwtData {
   studentId: number;
@@ -51,8 +54,33 @@ export async function getStudentLeaderboard(
     // Extract JWT data
     const { studentId, cityId, batchYear } = jwtData;
     
-    // Determine effective filters
+    // Determine effective filters for cache key
     const effectiveYear = filters.year || batchYear || new Date().getFullYear();
+    const effectiveCity = filters.city || 'all';
+    
+    // Generate stable deterministic cache key
+    const cacheKey = buildCacheKey(`leaderboard:student:${studentId}`, {
+      city: effectiveCity,
+      year: effectiveYear,
+      search: search || ''
+    });
+    
+    // 1. Try cache first
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log('=== REDIS CACHE HIT ===');
+      console.log(`[CACHE HIT] student_leaderboard for student ${studentId}`);
+      console.log(`Cache Key: ${cacheKey}`);
+      console.log(`Data Source: Redis Cache`);
+      console.log('========================');
+      return JSON.parse(cached);
+    }
+    
+    console.log('=== DATABASE FETCH ===');
+    console.log(`[CACHE MISS] student_leaderboard for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Database Query`);
+    console.log('===================');
     
     // Look up city ID from city name when a specific city is selected
     let effectiveCityId: number | undefined = undefined;
@@ -217,7 +245,7 @@ export async function getStudentLeaderboard(
       Promise.resolve(top10[0]?.last_calculated || new Date().toISOString()),
     ]);
 
-    return {
+    const result = {
       top10,
       yourRank,
       message: null,
@@ -228,6 +256,19 @@ export async function getStudentLeaderboard(
       available_cities: availableCities,
       last_calculated: lastCalculated,
     };
+
+    // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+    const serializedResult = JSON.stringify(result);
+    await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentLeaderboard);
+    
+    console.log('=== CACHE STORAGE ===');
+    console.log(`[CACHE STORE] student_leaderboard for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`TTL: ${CACHE_TTL.studentLeaderboard} seconds (${CACHE_TTL.studentLeaderboard/60} minutes)`);
+    console.log(`Data Source: Database Query -> Cached in Redis`);
+    console.log('====================');
+
+    return result;
   } catch (error) {
     handleLeaderboardError(error, "Student leaderboard");
   }

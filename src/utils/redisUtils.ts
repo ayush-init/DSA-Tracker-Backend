@@ -40,7 +40,6 @@ export function buildCacheKey(base: string, params: Record<string, any>): string
 
 /**
  * Modern Redis SET with TTL
- * Replaces deprecated redis.setex()
  */
 export async function setWithTTL(key: string, value: string, ttlSeconds: number): Promise<void> {
   await redis.set(key, value, 'EX', ttlSeconds);

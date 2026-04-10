@@ -1,6 +1,8 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
-import { cacheService, cacheKeys } from "../cache.service";
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 import { 
   buildHeatmapOptimized, 
   fetchAssignedDates, 
@@ -18,6 +20,26 @@ interface HeatmapData {
 }
 
 export const getStudentProfileService = async (studentId: number) => {
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:profile:${studentId}`, {});
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] student_profile for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] student_profile for student ${studentId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
+
   try {
     // 1 Get student basic info + leaderboard (single query with all relations)
     const student = await prisma.student.findUnique({
@@ -71,8 +93,9 @@ export const getStudentProfileService = async (studentId: number) => {
 
     // 3 Check cache for heatmap
     const startMonthISO = normalizeDate(heatmapStartMonth);
-    const cacheKey = cacheKeys.heatmap(studentId, batchId, startMonthISO);
-    let heatmap: HeatmapData[] | null = await cacheService.get<HeatmapData[]>(cacheKey);
+    const cacheKey = `student:heatmap:${studentId}:${batchId}:${startMonthISO}`;
+    const cachedHeatmap = await redis.get(cacheKey);
+    let heatmap: HeatmapData[] | null = cachedHeatmap ? JSON.parse(cachedHeatmap) : null;
     let assignedDates: Set<string> | null = null;
     let submissionCounts: Map<string, number> | null = null;
 
@@ -100,14 +123,14 @@ export const getStudentProfileService = async (studentId: number) => {
       });
       
       // 6 Store in cache (5 minutes TTL)
-      await cacheService.set(cacheKey, heatmap, 300);
+      await redis.setex(cacheKey, 300, JSON.stringify(heatmap));
     }
 
     // 7 Calculate today's stats
     const todayCount = submissionCounts ? getTodayCount(submissionCounts) : 0;
     const hasQuestionResult = assignedDates ? hasQuestionToday(assignedDates) : false;
 
-    return {
+    const result = {
       student: {
         name: student.name,
         username: student.username,
@@ -168,6 +191,19 @@ export const getStudentProfileService = async (studentId: number) => {
         solvedAt: a.sync_at
       }))
     };
+
+    // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+    const serializedResult = JSON.stringify(result);
+    await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentProfile);
+    
+    console.log('=== CACHE STORAGE ===');
+    console.log(`[CACHE STORE] student_profile for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`TTL: ${CACHE_TTL.studentProfile} seconds (${CACHE_TTL.studentProfile/60} minutes)`);
+    console.log(`Data Source: Database Query -> Cached in Redis`);
+    console.log('====================');
+
+    return result;
 
   } catch (error) {
     throw new ApiError(400, 

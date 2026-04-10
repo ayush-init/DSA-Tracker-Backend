@@ -1,5 +1,6 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
+import { CacheInvalidation } from "../../utils/cacheInvalidation";
 
 export const updateStudentProfileData = async (
   studentId: number,
@@ -41,6 +42,9 @@ export const updateStudentProfileData = async (
       created_at: true
     }
   });
+
+  // Invalidate leaderboard caches when student profile data changes
+  await CacheInvalidation.invalidateAllLeaderboards();
 
   return updated;
 };

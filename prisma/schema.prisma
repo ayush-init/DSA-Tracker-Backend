@@ -71,6 +71,7 @@ model Student {
   @@index([batch_id])
   @@index([batch_id, city_id])
   @@index([batch_id, city_id, id], map: "idx_student_batch_city_composite")
+  @@index([id], map: "idx_student_me_optimized", type: BTree)
 }
 
 model Admin {

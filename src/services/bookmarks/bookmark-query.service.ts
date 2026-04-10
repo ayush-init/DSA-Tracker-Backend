@@ -2,6 +2,9 @@ import prisma from "../../config/prisma";
 import { Prisma } from "@prisma/client";
 import { ApiError } from "../../utils/ApiError";
 import { HTTP_STATUS } from '../../utils/errorMapper';
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 
 export const getBookmarksService = async (
   studentId: number,
@@ -12,8 +15,34 @@ export const getBookmarksService = async (
     filter: 'all' | 'solved' | 'unsolved';
   }
 ) => {
+  const { page = 1, limit = 10, sort = 'recent', filter = 'all' } = options;
+
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:bookmarks:${studentId}`, {
+    page,
+    limit,
+    sort,
+    filter
+  });
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] bookmarks for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] bookmarks for student ${studentId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
+
   try {
-    const { page = 1, limit = 10, sort = 'recent', filter = 'all' } = options;
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
 
@@ -128,7 +157,7 @@ export const getBookmarksService = async (
     const hasNextPage = Number(page) < totalPages;
     const hasPreviousPage = Number(page) > 1;
 
-    return {
+    const result = {
       bookmarks: paginatedBookmarks,
       pagination: {
         page: Number(page),
@@ -139,6 +168,19 @@ export const getBookmarksService = async (
         hasPreviousPage
       }
     };
+
+    // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+    const serializedResult = JSON.stringify(result);
+    await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentBookmarks);
+    
+    console.log('=== CACHE STORAGE ===');
+    console.log(`[CACHE STORE] bookmarks for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`TTL: ${CACHE_TTL.studentBookmarks} seconds (${CACHE_TTL.studentBookmarks/60} minutes)`);
+    console.log(`Data Source: Database Query -> Cached in Redis`);
+    console.log('====================');
+
+    return result;
 
   } catch (error: any) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

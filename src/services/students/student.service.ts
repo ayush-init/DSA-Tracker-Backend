@@ -10,7 +10,11 @@ import { generateUsername } from "../../utils/usernameGenerator";
 import { Prisma } from "@prisma/client";
 import { HTTP_STATUS } from '../../utils/errorMapper';
 import { ApiError } from "../../utils/ApiError";
+import { CacheInvalidation } from "../../utils/cacheInvalidation";
 import { StudentData, StudentUpdateData, PrismaKnownError } from '../../types/common.types';
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 
 export const createStudentService = async (data: StudentData) => {
     try {
@@ -123,6 +127,13 @@ export const updateStudentDetailsService = async (id: number, body: StudentUpdat
             data: updateData
         });
 
+        // Invalidate caches when student profile data changes
+        await CacheInvalidation.invalidateAllLeaderboards();
+        
+        // Invalidate getCurrentStudent cache
+        const cacheKey = buildCacheKey(`student:me:${id}`, {});
+        await redis.del(cacheKey);
+
         return updatedStudent;
 
     } catch (error: unknown) {
@@ -169,6 +180,26 @@ export const deleteStudentDetailsService = async (id: number) => {
 };
 
 export const getCurrentStudentService = async (studentId: number) => {
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:me:${studentId}`, {});
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] student_me for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] student_me for student ${studentId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
+
   const student = await prisma.student.findUnique({
     where: { id: studentId },
     select: {
@@ -198,6 +229,17 @@ export const getCurrentStudentService = async (studentId: number) => {
   if (!student) {
     throw new ApiError(404, "Student not found", [], "STUDENT_NOT_FOUND");
   }
+
+  // Cache result with optimized TTL
+  const serializedResult = JSON.stringify(student);
+  await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentProfile);
+  
+  console.log('=== CACHE STORAGE ===');
+  console.log(`[CACHE STORE] student_me for student ${studentId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`TTL: ${CACHE_TTL.studentProfile} seconds (${CACHE_TTL.studentProfile/60} minutes)`);
+  console.log(`Data Source: Database Query -> Cached in Redis`);
+  console.log('====================');
 
   return student;
 };

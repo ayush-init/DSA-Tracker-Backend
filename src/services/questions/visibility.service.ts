@@ -49,8 +49,16 @@ export const assignQuestionsToClassService = async ({
   // Update batch question counts after assignment
   await updateBatchQuestionCounts(batchId);
 
-  // Invalidate assigned questions cache for this specific batch only
+  // Invalidate all affected caches
   await CacheInvalidation.invalidateAssignedQuestionsForBatch(batchId);
+  await CacheInvalidation.invalidateTopicsForBatch(batchId); // Topic question counts changed
+  await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId); // Topic overviews affected
+  await CacheInvalidation.invalidateClassProgressForBatch(batchId); // Class progress affected
+  await CacheInvalidation.invalidateClassProgressForClass(cls.id); // Specific class affected
+  await CacheInvalidation.invalidateBookmarks(); // Bookmarks might reference questions
+  await CacheInvalidation.invalidateAllStudentProfiles(); // Profile coding stats affected
+  await CacheInvalidation.invalidateAllLeaderboards(); // Leaderboard ranks change
+  await CacheInvalidation.invalidateRecentQuestions(); // Recent questions list affected
 
   return { assignedCount: questions.length };
 };
@@ -93,8 +101,16 @@ export const removeQuestionFromClassService = async ({
   // Update batch question counts after removal
   await updateBatchQuestionCounts(batchId);
 
-  // Invalidate assigned questions cache for this specific batch only
+  // Invalidate all affected caches
   await CacheInvalidation.invalidateAssignedQuestionsForBatch(batchId);
+  await CacheInvalidation.invalidateTopicsForBatch(batchId); // Topic question counts changed
+  await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId); // Topic overviews affected
+  await CacheInvalidation.invalidateClassProgressForBatch(batchId); // Class progress affected
+  await CacheInvalidation.invalidateClassProgressForClass(cls.id); // Specific class affected
+  await CacheInvalidation.invalidateBookmarks(); // Bookmarks might reference questions
+  await CacheInvalidation.invalidateAllStudentProfiles(); // Profile coding stats affected
+  await CacheInvalidation.invalidateAllLeaderboards(); // Leaderboard ranks change
+  await CacheInvalidation.invalidateRecentQuestions(); // Recent questions list affected
 
   return true;
 };
@@ -159,40 +175,42 @@ export const updateQuestionVisibilityTypeService = async ({
 // Helper function to update batch question counts
 async function updateBatchQuestionCounts(batchId: number) {
   try {
-    // Get all classes for this batch with their assigned questions
-    const batchClasses = await prisma.class.findMany({
-      where: { batch_id: batchId },
-      include: {
-        questionVisibility: {
-          include: {
-            question: {
-              select: { level: true }
-            }
-          }
-        }
-      }
-    });
+    // STRATEGY 1: Single aggregate SQL query to replace nested loops
+    const aggregateQuery = `
+      SELECT 
+        q.level,
+        COUNT(q.id) as count
+      FROM "Class" c
+      INNER JOIN "QuestionVisibility" qv ON c.id = qv.class_id
+      INNER JOIN "Question" q ON qv.question_id = q.id
+      WHERE c.batch_id = $1
+      GROUP BY q.level
+    `;
 
-    // Count questions by difficulty across all classes
+    const results = await prisma.$queryRawUnsafe(aggregateQuery, batchId) as Array<{
+      level: string;
+      count: bigint;
+    }>;
+
+    // Extract counts from aggregate results
     let hardCount = 0;
     let mediumCount = 0;
     let easyCount = 0;
 
-    for (const classItem of batchClasses) {
-      for (const qv of classItem.questionVisibility) {
-        switch (qv.question.level) {
-          case 'HARD':
-            hardCount++;
-            break;
-          case 'MEDIUM':
-            mediumCount++;
-            break;
-          case 'EASY':
-            easyCount++;
-            break;
-        }
+    results.forEach(result => {
+      const count = Number(result.count);
+      switch (result.level) {
+        case 'HARD':
+          hardCount = count;
+          break;
+        case 'MEDIUM':
+          mediumCount = count;
+          break;
+        case 'EASY':
+          easyCount = count;
+          break;
       }
-    }
+    });
 
     // Update the batch with the new counts
     await prisma.batch.update({

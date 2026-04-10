@@ -1,8 +1,11 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
-import { HTTP_STATUS } from "../../utils/errorMapper";
+import { HTTP_STATUS } from '../../utils/errorMapper';
 import { QueryParams } from '../../types/common.types';
 import { GetTopicsWithBatchProgressInput, GetTopicOverviewWithClassesSummaryInput } from "../../types/topic.types";
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 
 export const getTopicsWithBatchProgressService = async ({
   studentId,
@@ -14,6 +17,31 @@ export const getTopicsWithBatchProgressService = async ({
   const search = query?.search as string;
   const sortBy = query?.sortBy || 'recent';
   const offset = (page - 1) * limit;
+
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:topics:${studentId}:${batchId}`, {
+    page,
+    limit,
+    search: search || '',
+    sortBy
+  });
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] student_topics for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] student_topics for student ${studentId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
 
   // Build ORDER BY clause safely
   let orderByClause = 'ORDER BY last_class_created_at DESC NULLS LAST';
@@ -140,7 +168,7 @@ export const getTopicsWithBatchProgressService = async ({
       progressPercentage: Number(topic.progress_percentage) || 0
     }));
 
-    return {
+    const result = {
       topics: mappedTopics,
       pagination: {
         total: totalCount,
@@ -149,6 +177,19 @@ export const getTopicsWithBatchProgressService = async ({
         limit
       }
     };
+
+    // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+    const serializedResult = JSON.stringify(result);
+    await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentTopics);
+    
+    console.log('=== CACHE STORAGE ===');
+    console.log(`[CACHE STORE] student_topics for student ${studentId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`TTL: ${CACHE_TTL.studentTopics} seconds (${CACHE_TTL.studentTopics/60} minutes)`);
+    console.log(`Data Source: Database Query -> Cached in Redis`);
+    console.log('====================');
+
+    return result;
   } catch (error: unknown) {
     console.error('Error in getTopicsWithBatchProgressService:', error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch topics with progress";
@@ -166,6 +207,29 @@ export const getTopicOverviewWithClassesSummaryService = async ({
   const page = parseInt(query?.page as string) || 1;
   const limit = parseInt(query?.limit as string) || 10;
   const offset = (page - 1) * limit;
+
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:topic_overview:${studentId}:${batchId}:${topicSlug}`, {
+    page,
+    limit
+  });
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] topic_overview for topic ${topicSlug}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] topic_overview for topic ${topicSlug}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
 
   // Get topic basic info first
   const topic = await prisma.topic.findFirst({
@@ -237,7 +301,7 @@ export const getTopicOverviewWithClassesSummaryService = async ({
   const totalSolvedQuestions = Number(overall.solved_questions) || 0;
 
 
-  return {
+  const result = {
     id: topic.id,
     topic_name: topic.topic_name,
     slug: topic.slug,
@@ -258,6 +322,19 @@ export const getTopicOverviewWithClassesSummaryService = async ({
       solvedQuestions: totalSolvedQuestions
     }
   };
+
+  // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+  const serializedResult = JSON.stringify(result);
+  await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentTopicOverview);
+  
+  console.log('=== CACHE STORAGE ===');
+  console.log(`[CACHE STORE] topic_overview for topic ${topicSlug}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`TTL: ${CACHE_TTL.studentTopicOverview} seconds (${CACHE_TTL.studentTopicOverview/60} minutes)`);
+  console.log(`Data Source: Database Query -> Cached in Redis`);
+  console.log('====================');
+
+  return result;
 };
 
 export const getTopicProgressByUsernameService = async (username: string) => {
@@ -275,62 +352,64 @@ export const getTopicProgressByUsernameService = async (username: string) => {
   if (!student.batch_id) {
     throw new ApiError(400, "Student is not assigned to any batch", [], "NO_BATCH_ASSIGNED");
   }
-  // Get student progress to calculate solved questions
-  const studentProgress = await prisma.studentProgress.findMany({
-    where: { student_id: student.id }
-  });
 
-  // Get all topics with their classes
-  const topics = await prisma.topic.findMany({
-    include: {
-      classes: {
-        where: {
-          batch_id: student.batch_id
-        },
-        include: {
-          questionVisibility: {
-            include: {
-              question: {
-                select: {
-                  level: true,
-                  platform: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  });
+  // STRATEGY 1: Single optimized SQL query to replace N+1 loops
+  const topicsQuery = `
+    SELECT 
+      t.id,
+      t.topic_name,
+      t.slug,
+      t.description,
+      t.photo_url,
+      t.created_at,
+      t.updated_at,
+      COUNT(DISTINCT c.id) as class_count,
+      COUNT(DISTINCT q.id) as total_questions,
+      COUNT(DISTINCT CASE WHEN sp.question_id IS NOT NULL THEN q.id END) as solved_questions,
+      CASE 
+        WHEN COUNT(DISTINCT q.id) = 0 THEN 0
+        ELSE ROUND((COUNT(DISTINCT CASE WHEN sp.question_id IS NOT NULL THEN q.id END)::float / COUNT(DISTINCT q.id)) * 100)
+      END as progress_percentage
+    FROM "Topic" t
+    LEFT JOIN "Class" c ON t.id = c.topic_id AND c.batch_id = $1
+    LEFT JOIN "QuestionVisibility" qv ON c.id = qv.class_id
+    LEFT JOIN "Question" q ON qv.question_id = q.id
+    LEFT JOIN "StudentProgress" sp ON q.id = sp.question_id AND sp.student_id = $2
+    GROUP BY t.id, t.topic_name, t.slug, t.description, t.photo_url, t.created_at, t.updated_at
+    ORDER BY t.created_at DESC
+  `;
 
-  // Calculate progress for each topic (same logic as controller)
-  const topicsWithProgress = topics.map(topic => {
-    const topicClasses = topic.classes;
-    const totalQuestions = topicClasses.reduce((sum, classItem) => {
-      return sum + classItem.questionVisibility.length;
-    }, 0);
+  try {
+    const topics = await prisma.$queryRawUnsafe(topicsQuery, student.batch_id, student.id) as any[];
 
-    const solvedQuestions = studentProgress.filter(progress => {
-      return topicClasses.some(classItem =>
-        classItem.questionVisibility.some(qv => qv.question_id === progress.question_id)
-      );
-    }).length;
+    // Map SQL results to expected response structure
+    const topicsWithProgress = topics.map((topic: any) => ({
+      id: topic.id.toString(),
+      topic_name: topic.topic_name,
+      slug: topic.slug,
+      description: topic.description,
+      photo_url: topic.photo_url,
+      created_at: topic.created_at,
+      updated_at: topic.updated_at,
+      classes: [], // Empty array for compatibility with existing structure
+      totalQuestions: Number(topic.total_questions) || 0,
+      solvedQuestions: Number(topic.solved_questions) || 0,
+      progressPercentage: Number(topic.progress_percentage) || 0
+    }));
 
     return {
-      ...topic,
-      totalQuestions,
-      solvedQuestions,
-      progressPercentage: totalQuestions > 0 ? Math.round((solvedQuestions / totalQuestions) * 100) : 0
+      student: {
+        id: student.id,
+        name: student.name,
+        username: student.username,
+        batch: student.batch
+      },
+      topics: topicsWithProgress
     };
-  });
 
-  return {
-    student: {
-      id: student.id,
-      name: student.name,
-      username: student.username,
-      batch: student.batch
-    },
-    topics: topicsWithProgress
-  };
+  } catch (error: unknown) {
+    console.error('Error in getTopicProgressByUsernameService:', error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch topic progress";
+    throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, errorMessage);
+  }
 };

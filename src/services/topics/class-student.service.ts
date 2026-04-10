@@ -1,5 +1,8 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 
 // Student-specific service - get class details with full questions array
 interface GetClassDetailsWithFullQuestionsInput {
@@ -21,7 +24,35 @@ export const getClassDetailsWithFullQuestionsService = async ({
   query,
 }: GetClassDetailsWithFullQuestionsInput) => {
   
-  // Create unique request key
+  const page = parseInt(query?.page as string) || 1;
+  const limit = parseInt(query?.limit as string) || 10;
+  const filter = query?.filter as string;
+
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:class_progress:${studentId}:${batchId}:${topicSlug}:${classSlug}`, {
+    page,
+    limit,
+    filter: filter || ''
+  });
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] class_progress for class ${classSlug}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] class_progress for class ${classSlug}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
+  
+  // Create unique request key for request deduplication
   const requestKey = `${studentId}-${batchId}-${topicSlug}-${classSlug}-${JSON.stringify(query || {})}`;
   
   // Check if request is already in progress
@@ -230,7 +261,18 @@ export const getClassDetailsWithFullQuestionsService = async ({
           hasPrev
         }
       };
+
+      // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+      const serializedResult = JSON.stringify(result);
+      await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentClassProgress);
       
+      console.log('=== CACHE STORAGE ===');
+      console.log(`[CACHE STORE] class_progress for class ${classSlug}`);
+      console.log(`Cache Key: ${cacheKey}`);
+      console.log(`TTL: ${CACHE_TTL.studentClassProgress} seconds (${CACHE_TTL.studentClassProgress/60} minutes)`);
+      console.log(`Data Source: Database Query -> Cached in Redis`);
+      console.log('====================');
+
       return result;
     } finally {
       // Clean up cache after request completes

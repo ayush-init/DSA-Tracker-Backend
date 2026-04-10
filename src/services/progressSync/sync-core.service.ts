@@ -186,8 +186,15 @@ export async function syncOneStudent(
       skipDuplicates: true  // Safety net to prevent any duplicates
     });
     
-    // Invalidate assigned questions cache when student progress changes
-    await CacheInvalidation.invalidateAssignedQuestions();
+    // Invalidate caches when student progress changes
+    await CacheInvalidation.invalidateAssignedQuestions(); // Questions list affected
+    await CacheInvalidation.invalidateTopics(); // Topics progress changed
+    await CacheInvalidation.invalidateTopicOverviews(); // Topic overviews affected
+    await CacheInvalidation.invalidateClassProgress(); // Class progress affected
+    await CacheInvalidation.invalidateBookmarks(); // Bookmark status affected
+    await CacheInvalidation.invalidateStudentProfile(studentId); // Student profile affected
+    await CacheInvalidation.invalidateAllStudentProfiles(); // All profiles (ranks changed)
+    await CacheInvalidation.invalidateAllLeaderboards(); // Leaderboard ranks change
   } else {
   }
 

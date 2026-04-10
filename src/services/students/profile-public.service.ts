@@ -1,6 +1,8 @@
 import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
-import { cacheService, cacheKeys } from "../cache.service";
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 import { 
   buildHeatmapOptimized, 
   fetchAssignedDates, 
@@ -18,7 +20,27 @@ export const getPublicStudentProfileService = async (username: string) => {
   const startTime = Date.now();
   const timings: Record<string, number> = {};
   
-  // 1 Get student basic info + leaderboard (single query with all relations)
+  // Generate cache key for username-based profile
+  const cacheKey = `student:profile:public:${username}`;
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] public_profile for username ${username}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] public_profile for username ${username}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
+  
+  // 2 Get student basic info + leaderboard (single query with all relations)
   const t1 = Date.now();
   const student = await prisma.student.findUnique({
     where: { username },
@@ -95,49 +117,34 @@ export const getPublicStudentProfileService = async (username: string) => {
 
   timings.parallelQueries = Date.now() - t2;
 
-  // 3 Check cache for heatmap
+  // 3 Build heatmap data (simplified approach without separate caching)
   const t3 = Date.now();
-  const startMonthISO = normalizeDate(heatmapStartMonth);
-  const cacheKey = cacheKeys.heatmap(studentId, batchId, startMonthISO);
-  let heatmap: HeatmapData[] | null = await cacheService.get<HeatmapData[]>(cacheKey);
-  timings.cacheCheck = Date.now() - t3;
-
-  if (!heatmap) {
-    // 4 Fetch heatmap data sources in parallel
-    const t4 = Date.now();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + 1); // Include today
-    
-    const [assignedDates, submissionCounts] = await Promise.all([
-      fetchAssignedDates(batchId, heatmapStartMonth),
-      fetchSubmissionCounts(studentId, heatmapStartMonth)
-    ]);
-    timings.heatmapDataFetch = Date.now() - t4;
-    
-    // 5 Build heatmap in JavaScript
-    const t5 = Date.now();
-    const completedAll = hasCompletedAllQuestions(batchQuestionCounts, leaderboard);
-    heatmap = buildHeatmapOptimized({
-      startDate: heatmapStartMonth,
-      endDate,
-      assignedDates,
-      submissionCounts,
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + 1); // Include today
+  
+  const [assignedDates, submissionCounts] = await Promise.all([
+    fetchAssignedDates(batchId, heatmapStartMonth),
+    fetchSubmissionCounts(studentId, heatmapStartMonth)
+  ]);
+  
+  timings.heatmapDataFetch = Date.now() - t3;
+  
+  // 4 Build heatmap in JavaScript
+  const t4 = Date.now();
+  const completedAll = hasCompletedAllQuestions(batchQuestionCounts, leaderboard);
+  const heatmap = buildHeatmapOptimized({
+    startDate: heatmapStartMonth,
+    endDate,
+    assignedDates,
+    submissionCounts,
       completedAll
     });
-    timings.heatmapBuild = Date.now() - t5;
-    
-    // 6 Store in cache (5 minutes TTL)
-    const t6 = Date.now();
-    await cacheService.set(cacheKey, heatmap, 300);
-    timings.cacheStore = Date.now() - t6;
-  } else {
-    timings.cacheHit = 1;
-  }
+  timings.heatmapBuild = Date.now() - t4;
 
   timings.total = Date.now() - startTime;
   // Profile API timings tracked for performance monitoring
 
-  return {
+  const result = {
     student: {
       id: student.id,
       name: student.name,
@@ -184,7 +191,7 @@ export const getPublicStudentProfileService = async (username: string) => {
       count: Number(h.count)
     })),
 
-    heatmapStartMonth: startMonthISO,
+    heatmapStartMonth: normalizeDate(heatmapStartMonth),
 
     recentActivity: recentActivity.map((a) => ({
       question_name: a.question.question_name,
@@ -193,4 +200,17 @@ export const getPublicStudentProfileService = async (username: string) => {
       solvedAt: a.sync_at
     }))
   };
+
+  // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+  const serializedResult = JSON.stringify(result);
+  await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentPublicProfile);
+  
+  console.log('=== CACHE STORAGE ===');
+  console.log(`[CACHE STORE] public_profile for username ${username}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`TTL: ${CACHE_TTL.studentPublicProfile} seconds (${CACHE_TTL.studentPublicProfile/60} minutes)`);
+  console.log(`Data Source: Database Query -> Cached in Redis`);
+  console.log('====================');
+
+  return result;
 };

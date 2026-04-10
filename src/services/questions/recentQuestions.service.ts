@@ -1,4 +1,8 @@
 import prisma from "../../config/prisma";
+import { ApiError } from "../../utils/ApiError";
+import redis from "../../config/redis";
+import { CACHE_TTL } from "../../config/cache.config";
+import { buildCacheKey, setWithTTL } from "../../utils/redisUtils";
 
 interface GetRecentQuestionsInput {
   batchId: number;
@@ -17,6 +21,30 @@ export const getRecentQuestionsService = async ({
   page = DEFAULT_PAGE,
   limit = DEFAULT_LIMIT
 }: GetRecentQuestionsInput) => {
+  
+  // Generate stable deterministic cache key
+  const cacheKey = buildCacheKey(`student:recent_questions:${batchId}`, {
+    date: date || 'today',
+    page,
+    limit
+  });
+  
+  // 1. Try cache first
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    console.log('=== REDIS CACHE HIT ===');
+    console.log(`[CACHE HIT] recent_questions for batch ${batchId}`);
+    console.log(`Cache Key: ${cacheKey}`);
+    console.log(`Data Source: Redis Cache`);
+    console.log('========================');
+    return JSON.parse(cached);
+  }
+  
+  console.log('=== DATABASE FETCH ===');
+  console.log(`[CACHE MISS] recent_questions for batch ${batchId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`Data Source: Database Query`);
+  console.log('===================');
 
   // Calculate date range for the specific date
   let startDate: Date;
@@ -99,7 +127,7 @@ export const getRecentQuestionsService = async ({
     assigned_at: qv.assigned_at
   }));
 
-  return {
+  const result = {
     questions,
     pagination: {
       page,
@@ -110,4 +138,17 @@ export const getRecentQuestionsService = async ({
       hasPrev: page > 1
     }
   };
+
+  // 3. Cache result with modern Redis SET syntax (avoid duplicate JSON.stringify)
+  const serializedResult = JSON.stringify(result);
+  await setWithTTL(cacheKey, serializedResult, CACHE_TTL.studentRecentQuestions);
+  
+  console.log('=== CACHE STORAGE ===');
+  console.log(`[CACHE STORE] recent_questions for batch ${batchId}`);
+  console.log(`Cache Key: ${cacheKey}`);
+  console.log(`TTL: ${CACHE_TTL.studentRecentQuestions} seconds (${CACHE_TTL.studentRecentQuestions/60} minutes)`);
+  console.log(`Data Source: Database Query -> Cached in Redis`);
+  console.log('====================');
+
+  return result;
 };
