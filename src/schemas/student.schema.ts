@@ -58,8 +58,8 @@ export const studentIdParamSchema = z.object({
  * GET /api/admin/students
  */
 export const studentQuerySchema = z.object({
-  page: z.string().optional().transform(Number).default(1),
-  limit: z.string().optional().transform(Number).default(10),
+  page: z.string().optional().transform(Number).default("1"),
+  limit: z.string().optional().transform(Number).default("10"),
   search: z.string().optional(),
   batch_id: z.string().optional().transform((val) => (val ? Number(val) : undefined)),
 });
