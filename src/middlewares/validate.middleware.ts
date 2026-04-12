@@ -76,7 +76,13 @@ export const validateParams = (schema: ZodSchema) => {
  * Format Zod errors into a readable array
  */
 const formatZodErrors = (error: ZodError) => {
-  return error.errors.map((err) => ({
+  if (!error.issues || !Array.isArray(error.issues)) {
+    return [{
+      field: "unknown",
+      message: error.message || "Validation failed",
+    }];
+  }
+  return error.issues.map((err) => ({
     field: err.path.join("."),
     message: err.message,
   }));

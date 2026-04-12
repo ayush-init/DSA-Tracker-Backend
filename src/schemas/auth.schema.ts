@@ -62,7 +62,8 @@ export const verifyOtpSchema = z.object({
  * POST /api/auth/reset-password
  */
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1, "Token is required"),
+  email: z.string().email("Invalid email format"),
+  otp: z.string().min(1, "OTP is required"),
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
 });
 
