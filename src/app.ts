@@ -35,6 +35,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Security middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
+
 // Apply global API rate limiter to all API routes
 // Note: Specific routes with their own limiters will override this
 app.use('/api', apiLimiter);
