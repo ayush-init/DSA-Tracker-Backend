@@ -35,9 +35,9 @@ export const createStudentService = async (data: StudentData) => {
             throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Name and email are required");
         }
 
-        // Generate username if not provided
+        // Generate username if not provided or empty
         let finalUsername = username;
-        if (!finalUsername) {
+        if (!finalUsername || finalUsername === "") {
             const usernameResult = await generateUsername(name, enrollment_id);
             finalUsername = usernameResult.finalUsername;
         }

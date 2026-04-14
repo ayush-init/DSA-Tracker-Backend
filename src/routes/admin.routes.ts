@@ -25,7 +25,6 @@ import {
   topicSlugParamSchema,
   classIdParamSchema,
   classSlugParamSchema,
-  assignQuestionsSchema,
 } from "../schemas/topic.schema";
 import { batchStatsSchema } from "../schemas/admin.schema";
 import { getAllCities } from "../controllers/city.controller";
@@ -178,7 +177,6 @@ router.post(
   "/:batchSlug/topics/:topicSlug/classes/:classSlug/questions",
   isTeacherOrAbove,
   validateParams(classSlugParamSchema),
-  validateBody(assignQuestionsSchema),
   assignQuestionsToClass
 );
 

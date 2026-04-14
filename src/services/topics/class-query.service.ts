@@ -86,8 +86,15 @@ export const getClassesByTopicService = async ({
     created_at: cls.created_at,
   }));
 
+  // Extract topic details from the first class (all classes belong to the same topic)
+  const topicDetails = classes.length > 0 ? {
+    topic_name: classes[0].topic.topic_name,
+    photo_url: classes[0].topic.photo_url,
+  } : null;
+
   return {
     data: formatted,
+    topic: topicDetails,
     pagination: {
       page,
       limit,

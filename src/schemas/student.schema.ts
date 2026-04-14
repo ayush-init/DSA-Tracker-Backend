@@ -7,7 +7,7 @@ import { z } from "zod";
 export const createStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email format"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  username: z.string().optional(),
   password: z.string().min(8, "Password must be at least 8 characters").optional(),
   enrollment_id: z.string().min(1, "Enrollment ID is required"),
   batch_id: z.number().int().positive("Batch ID is required"),
@@ -22,7 +22,7 @@ export const createStudentSchema = z.object({
 export const updateStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
   email: z.string().email("Invalid email format").optional(),
-  username: z.string().min(3, "Username must be at least 3 characters").optional(),
+  username: z.string().optional(),
   enrollment_id: z.string().optional(),
   leetcode_id: z.string().optional(),
   gfg_id: z.string().optional(),
@@ -58,8 +58,8 @@ export const studentIdParamSchema = z.object({
  * GET /api/admin/students
  */
 export const studentQuerySchema = z.object({
-  page: z.string().optional().transform(Number).default("1"),
-  limit: z.string().optional().transform(Number).default("10"),
+  page: z.string().optional().transform(Number).default(1),
+  limit: z.string().optional().transform(Number).default(10),
   search: z.string().optional(),
   batch_id: z.string().optional().transform((val) => (val ? Number(val) : undefined)),
 });
