@@ -64,7 +64,7 @@ export const loginStudent = asyncHandler(async (req: Request, res: Response) => 
 
     secure: process.env.NODE_ENV === 'production',
 
-    sameSite: 'strict',
+    sameSite: 'lax',
 
     maxAge: 7 * 24 * 60 * 60 * 1000,
 
@@ -132,7 +132,7 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response) => {
 
     secure: process.env.NODE_ENV === 'production',
 
-    sameSite: 'strict',
+    sameSite: 'lax',
 
     maxAge: 7 * 24 * 60 * 60 * 1000,
 
@@ -186,7 +186,7 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
 
     secure: process.env.NODE_ENV === 'production',
 
-    sameSite: 'strict',
+    sameSite: 'lax',
 
     maxAge: 7 * 24 * 60 * 60 * 1000,
 

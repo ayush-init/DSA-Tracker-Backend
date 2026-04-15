@@ -6,6 +6,7 @@ import { getTopicsWithBatchProgressService, getTopicOverviewWithClassesSummarySe
 import { upload } from "../middlewares/upload.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
+import { CacheInvalidation } from "../utils/cacheInvalidation";
 import { generateSlug } from "../utils/slugify";
 import { detectPlatform } from "../services/questions/question-utils.service";
 import { ExtendedRequest } from "../types";
@@ -21,6 +22,11 @@ export const createTopic = asyncHandler(async (
   }
 
   const topic = await createTopicService({ topic_name, photo });
+
+  // Invalidate caches - new topic affects admin topic list and student topic listings
+  await CacheInvalidation.invalidateAdminTopics();
+  await CacheInvalidation.invalidateTopics();
+  await CacheInvalidation.invalidateTopicOverviews();
 
   return res.status(201).json({
     message: "Topic created successfully",
@@ -68,6 +74,11 @@ export const updateTopic = asyncHandler(async (req: Request, res: Response) => {
     removePhoto: removePhoto === 'true' || removePhoto === true,
   });
 
+  // Invalidate caches - topic name/photo changed affects all student topic listings
+  await CacheInvalidation.invalidateAdminTopics();
+  await CacheInvalidation.invalidateTopics();
+  await CacheInvalidation.invalidateTopicOverviews();
+
   return res.json({
     message: "Topic updated successfully",
     topic,
@@ -80,6 +91,11 @@ export const deleteTopic = asyncHandler(async (req: Request, res: Response) => {
   await deleteTopicService({
     topicSlug,
   });
+
+  // Invalidate caches - deleted topic affects all student topic listings
+  await CacheInvalidation.invalidateAdminTopics();
+  await CacheInvalidation.invalidateTopics();
+  await CacheInvalidation.invalidateTopicOverviews();
 
   return res.json({
     message: "Topic deleted successfully",
@@ -152,6 +168,11 @@ export const createTopicsBulk = asyncHandler(async (req: Request, res: Response)
   });
 
   const created = await createTopicsBulkService(formattedTopics);
+
+  // Invalidate caches - bulk created topics affect admin and student topic listings
+  await CacheInvalidation.invalidateAdminTopics();
+  await CacheInvalidation.invalidateTopics();
+  await CacheInvalidation.invalidateTopicOverviews();
 
   return res.status(201).json({
     message: "Topics created successfully",
