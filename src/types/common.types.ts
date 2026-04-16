@@ -67,6 +67,8 @@ export interface StudentUpdateData {
   gfg_id?: string;
   github?: string;
   linkedin?: string;
+  batch_id?: number;
+  city_id?: number;
 }
 
 // Topic data types
