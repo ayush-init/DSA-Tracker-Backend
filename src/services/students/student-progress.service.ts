@@ -2,6 +2,7 @@ import prisma from "../../config/prisma";
 import { Prisma } from "@prisma/client";
 import { HTTP_STATUS } from '../../utils/errorMapper';
 import { ApiError } from "../../utils/ApiError";
+import { CacheInvalidation } from "../../utils/cacheInvalidation";
 
 export const getStudentReportService = async (username: string) => {
     try {
@@ -256,6 +257,9 @@ export const addStudentProgressService = async (
                 question_id
             }
         });
+
+        // Invalidate caches including leaderboards, profile, and progress
+        await CacheInvalidation.invalidateStudent(student_id);
 
         return progress;
 

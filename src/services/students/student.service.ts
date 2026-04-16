@@ -145,6 +145,11 @@ export const updateStudentDetailsService = async (id: number, body: StudentUpdat
         // Invalidate heatmap cache
         await redis.del(`student:heatmap:${id}:*`);
 
+        // If batch changed, clear batch-dependent caches
+        if (updateData.batch_id && updateData.batch_id !== student.batch_id) {
+          await CacheInvalidation.invalidateStudent(id);
+        }
+
         return updatedStudent;
 
     } catch (error: unknown) {
@@ -177,6 +182,13 @@ export const deleteStudentDetailsService = async (id: number) => {
         await prisma.student.delete({
             where: { id }
         });
+
+        // Full cache invalidation for the deleted student
+        await CacheInvalidation.invalidateStudent(id);
+        
+        // Invalidate student:me
+        const cacheKey = buildCacheKey(`student:me:${id}`, {});
+        await redis.del(cacheKey);
 
         return true;
 

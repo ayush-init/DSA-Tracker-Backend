@@ -5,24 +5,18 @@ export class CacheInvalidation {
   
   // Student-specific invalidation
   static async invalidateStudent(studentId: number, batchId?: number) {
-    // Delete specific student keys + all pattern-based caches
-    const keys = [
-      `student:profile:${studentId}`,
-      `student:profile:public:${studentId}`,
-    ];
-    
+    // We use deleteByPattern for these because buildCacheKey adds a trailing colon 
+    // or stringified params, so an exact key deletion without trailing colons will miss.
     const patterns = [
-      'student:assigned_questions:*',
-      'student:topics:*',
-      'student:topic_overview:*',
-      'student:class_progress:*',
-      'student:bookmarks:*',
-      'student:recent_questions:*'
+      `student:profile:${studentId}:*`,
+      `student:profile:public:${studentId}:*`,
+      `student:assigned_questions:${studentId}:*`,
+      `student:topics:${studentId}:*`,
+      `student:topic_overview:${studentId}:*`,
+      `student:class_progress:${studentId}:*`,
+      `student:bookmarks:${studentId}:*`,
+      `student:recent_questions:${studentId}:*`
     ];
-    
-    // Delete specific keys
-    await Promise.all(keys.map(key => redis.del(key)));
-    
     // Delete pattern-based keys using SCAN
     await Promise.all(patterns.map(pattern => deleteByPattern(pattern)));
     
@@ -76,7 +70,7 @@ export class CacheInvalidation {
 
   // Batch-specific invalidation - more precise
   static async invalidateAssignedQuestionsForBatch(batchId: number) {
-    await deleteByPattern(`student:assigned_questions:*:*:${batchId}:*`);
+    await deleteByPattern(`student:assigned_questions:*:${batchId}:*`);
   }
   
   static async invalidateTopics() {
@@ -97,7 +91,7 @@ export class CacheInvalidation {
   
   // Batch-specific topics invalidation
   static async invalidateTopicsForBatch(batchId: number) {
-    await deleteByPattern(`student:topics:*:*:${batchId}:*`);
+    await deleteByPattern(`student:topics:*:${batchId}:*`);
   }
   
   // Student-specific topics invalidation
@@ -107,7 +101,7 @@ export class CacheInvalidation {
   
   // Batch-specific topic overview invalidation
   static async invalidateTopicOverviewsForBatch(batchId: number) {
-    await deleteByPattern(`student:topic_overview:*:*:${batchId}:*`);
+    await deleteByPattern(`student:topic_overview:*:${batchId}:*`);
   }
   
   // Student-specific topic overview invalidation
@@ -123,8 +117,8 @@ export class CacheInvalidation {
   // Student-specific profile invalidation
   static async invalidateStudentProfile(studentId: number) {
     const patterns = [
-      `student:profile:${studentId}`,
-      `student:profile:public:${studentId}`
+      `student:profile:${studentId}:*`,
+      `student:profile:public:${studentId}:*`
     ];
     
     await Promise.all(patterns.map(pattern => deleteByPattern(pattern)));
@@ -132,7 +126,7 @@ export class CacheInvalidation {
   
   // Batch-specific class progress invalidation
   static async invalidateClassProgressForBatch(batchId: number) {
-    await deleteByPattern(`student:class_progress:*:*:${batchId}:*`);
+    await deleteByPattern(`student:class_progress:*:${batchId}:*`);
   }
   
   // Student-specific class progress invalidation
@@ -140,10 +134,7 @@ export class CacheInvalidation {
     await deleteByPattern(`student:class_progress:${studentId}:*`);
   }
   
-  // Class-specific invalidation
-  static async invalidateClassProgressForClass(classId: number) {
-    await deleteByPattern(`student:class_progress:*:*:*:${classId}:*`);
-  }
+
   
   // Student-specific bookmarks invalidation
   static async invalidateBookmarksForStudent(studentId: number) {

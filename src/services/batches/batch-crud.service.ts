@@ -1,6 +1,7 @@
 import prisma from "../../config/prisma";
 import { generateBatchSlug } from "../../utils/slug";
 import { ApiError } from "../../utils/ApiError";
+import { deleteByPattern } from "../../utils/redisUtils";
 
 interface CreateBatchInput {
   batch_name: string;
@@ -137,6 +138,12 @@ export const updateBatchService = async ({
     where: { id: existingBatch.id },
     data: updateData,
   });
+
+  if (shouldRegenerateSlug) {
+    // If core batch details changed, invalidate student:me caches 
+    // to reflect the new batch name/year across the app
+    await deleteByPattern('student:me:*');
+  }
 
   return updatedBatch;
 };

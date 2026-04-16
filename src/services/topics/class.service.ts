@@ -3,6 +3,7 @@ import prisma from "../../config/prisma";
 import { ApiError } from "../../utils/ApiError";
 import { S3Service } from "../../services/storage/s3.service";
 import { CreateClassInput, UpdateClassInput, DeleteClassInput } from "../../types/topic.types";
+import { CacheInvalidation } from "../../utils/cacheInvalidation";
 
 export const createClassInTopicService = async ({
   batchId,
@@ -142,6 +143,11 @@ export const createClassInTopicService = async ({
         batch_id: batchId,
       },
     });
+
+    // Invalidate batch caches related to class syllabus/topics
+    await CacheInvalidation.invalidateTopicsForBatch(batchId);
+    await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId);
+    await CacheInvalidation.invalidateClassProgressForBatch(batchId);
 
     return newClass;
   } catch (dbError: any) {
@@ -336,6 +342,11 @@ export const updateClassService = async ({
       }
     }
 
+    // Invalidate caches
+    await CacheInvalidation.invalidateTopicsForBatch(batchId);
+    await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId);
+    await CacheInvalidation.invalidateClassProgressForBatch(batchId);
+
     return updatedClass;
 
   } catch (dbError: any) {
@@ -416,6 +427,11 @@ export const deleteClassService = async ({
       console.error("Failed to cleanup PDF from S3 after class deletion:", cleanupError);
     }
   }
+
+  // Invalidate caches
+  await CacheInvalidation.invalidateTopicsForBatch(batchId);
+  await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId);
+  await CacheInvalidation.invalidateClassProgressForBatch(batchId);
 
   return true;
 };

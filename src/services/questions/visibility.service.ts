@@ -54,7 +54,6 @@ export const assignQuestionsToClassService = async ({
   await CacheInvalidation.invalidateTopicsForBatch(batchId); // Topic question counts changed
   await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId); // Topic overviews affected
   await CacheInvalidation.invalidateClassProgressForBatch(batchId); // Class progress affected
-  await CacheInvalidation.invalidateClassProgressForClass(cls.id); // Specific class affected
   await CacheInvalidation.invalidateBookmarks(); // Bookmarks might reference questions
   await CacheInvalidation.invalidateAllStudentProfiles(); // Profile coding stats affected
   await CacheInvalidation.invalidateAllLeaderboards(); // Leaderboard ranks change
@@ -106,7 +105,6 @@ export const removeQuestionFromClassService = async ({
   await CacheInvalidation.invalidateTopicsForBatch(batchId); // Topic question counts changed
   await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId); // Topic overviews affected
   await CacheInvalidation.invalidateClassProgressForBatch(batchId); // Class progress affected
-  await CacheInvalidation.invalidateClassProgressForClass(cls.id); // Specific class affected
   await CacheInvalidation.invalidateBookmarks(); // Bookmarks might reference questions
   await CacheInvalidation.invalidateAllStudentProfiles(); // Profile coding stats affected
   await CacheInvalidation.invalidateAllLeaderboards(); // Leaderboard ranks change
@@ -168,6 +166,11 @@ export const updateQuestionVisibilityTypeService = async ({
     where: { id: visibilityId },
     data: { type },
   });
+
+  // Invalidate affected caches
+  await CacheInvalidation.invalidateAssignedQuestionsForBatch(batchId);
+  await CacheInvalidation.invalidateClassProgressForBatch(batchId);
+  await CacheInvalidation.invalidateTopicOverviewsForBatch(batchId);
 
   return updated;
 };
