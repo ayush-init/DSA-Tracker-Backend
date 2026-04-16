@@ -79,6 +79,10 @@ export const addBookmark = asyncHandler(async (req: ExtendedRequest, res: Respon
 
   // Invalidate bookmark cache for this student
   await CacheInvalidation.invalidateBookmarksForStudent(student.id);
+  // Invalidate assigned questions cache since isBookmarked field changes
+  await CacheInvalidation.invalidateAssignedQuestionsForStudent(student.id);
+  // Invalidate class progress cache since isBookmarked field changes
+  await CacheInvalidation.invalidateClassProgressForStudent(student.id);
 
   res.status(201).json({
     success: true,
@@ -104,6 +108,10 @@ export const updateBookmark = asyncHandler(async (req: ExtendedRequest, res: Res
 
   // Invalidate bookmark cache for this student
   await CacheInvalidation.invalidateBookmarksForStudent(student.id);
+  // Invalidate assigned questions cache since isBookmarked field changes
+  await CacheInvalidation.invalidateAssignedQuestionsForStudent(student.id);
+  // Invalidate class progress cache since isBookmarked field changes
+  await CacheInvalidation.invalidateClassProgressForStudent(student.id);
 
   res.status(200).json({
     success: true,
@@ -128,6 +136,10 @@ export const deleteBookmark = asyncHandler(async (req: ExtendedRequest, res: Res
 
   // Invalidate bookmark cache for this student
   await CacheInvalidation.invalidateBookmarksForStudent(student.id);
+  // Invalidate assigned questions cache since isBookmarked field changes
+  await CacheInvalidation.invalidateAssignedQuestionsForStudent(student.id);
+  // Invalidate class progress cache since isBookmarked field changes
+  await CacheInvalidation.invalidateClassProgressForStudent(student.id);
 
   res.status(200).json({
     success: true,
