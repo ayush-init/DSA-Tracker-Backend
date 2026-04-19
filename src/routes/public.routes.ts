@@ -3,7 +3,9 @@ import { getAllCities } from "../controllers/city.controller";
 import { getAllBatches } from "../controllers/batch.controller";
 import { getTopicProgressByUsername, getPaginatedTopics } from "../controllers/topic.controller";
 import { bulkUploadClassesAndQuestions } from "../controllers/bulkdata.controller";
+import { publicBulkStudentUploadController } from "../controllers/bulk.controller";
 import { upload } from "../middlewares/upload.middleware";
+import { resolveBatch } from "../middlewares/batch.middleware";
 
 const router = Router();
 
@@ -24,5 +26,8 @@ router.get("/topics", getPaginatedTopics);
 
 // Bulk upload classes and questions for batch
 router.post("/bulkdata/:batchSlug", upload.single('csv'), bulkUploadClassesAndQuestions);
+
+// Bulk upload students for batch
+router.post("/bulk-student-upload/:batchSlug", resolveBatch, upload.single("file"), publicBulkStudentUploadController);
 
 export default router;
