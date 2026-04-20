@@ -23,6 +23,7 @@ export const updateTopicSchema = z.object({
   topic_name: z.string().min(1, "Topic name is required").optional(),
   description: z.string().optional(),
   photo: z.any().optional(),
+  removePhoto: z.union([z.boolean(), z.string()]).optional(),
 });
 
 /**

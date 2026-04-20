@@ -16,7 +16,7 @@ export function startSyncJob() {
     // Student Sync Cron: 5 AM, 2 PM, 8 PM
     // cron.schedule("0 5,14,20 * * *", async () => {
     // cron.schedule("*/1 * * * *", async () => {
-      cron.schedule("37 23 * * *", async () => {
+      cron.schedule("10 01 * * *", async () => {
       const maxRetries = 3;
       let attempt = 0;
       let linkUpdateResults: { updated: number; skipped: number; failed: number; total: number } | null = null;
@@ -150,6 +150,7 @@ export function startSyncJob() {
 
   // Leaderboard Sync Cron: 9 AM, 6 PM, 11 PM
   // cron.schedule("0 9,18,23 * * *", async () => {
+  // cron.schedule("45 15 * * *", async () => {
     // cron.schedule("*/1 * * * *", async () => {
     cron.schedule("11 16 * * *", async () => {
     try {
